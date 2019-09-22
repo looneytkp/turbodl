@@ -97,4 +97,4 @@ done < output	#end of loop
 
 #curl -s -X POST https://content.dropboxapi.com/2/files/upload --header "Authorization: Bearer DlS2vDBOAr4AAAAAAAABck-oi1CylO-l-Dg6lddfRy4vcq5iH8WJxU6jNkK__uGY" --header "Dropbox-API-Arg: {\"path\": \"/dev/movie list.txt\",\"mode\": \"overwrite\",\"autorename\": false,\"mute\": false,\"strict_conflict\": false}" --header "Content-Type: application/octet-stream" --data-binary @'movie list.txt' > /dev/null		#upload titles file to dropbox
 if [ -e moviedata ]; then rm moviedata; fi
-#echo | mutt -s 'turbodlbot' -i errors/* < 'today.txt' -- sgm4kv@gmail.com info@turbodl.xyz
+echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- sgm4kv@gmail.com info@turbodl.xyz
