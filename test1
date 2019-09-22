@@ -88,7 +88,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 		LINKS=$(grep ^"<span style=\"font-family.*http.*a>" moviedata | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/")	#alternative if download links returns empty
 		rm moviedata
 	fi
-	if grep -qiE "(cam|hdts|hdtc)"
+	#if grep -qiE "(cam|hdts|hdtc)"
 	{
 		echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>"
 	} > movies/"$OUTPUT"
