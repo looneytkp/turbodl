@@ -124,7 +124,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	fi
 	echo "$TITLE" | tee -a 'movie list.txt' 'today.txt'		#place title in file to upload to dropbox & mail
 	if [ "$USER" != persie ]; then
-	echo | mutt -s "$TITLE" -i movies/"$OUTPUT" -a movies/"$OUTPUT".jpg -- persie@turbodl.xyz 'info@turbodl.com'
+	echo | mutt -s "$TITLE" -i movies/"$OUTPUT" -a movies/"$OUTPUT".jpg -- persie@turbodl.xyz 'info@turbodl.xyz'
 	fi
 done < output	#end of loop
 
