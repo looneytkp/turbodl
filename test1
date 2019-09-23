@@ -66,7 +66,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 		done
 		if [ "$T" == null ]; then
 			DL_MOVIEDATA	#function
-			echo -e "<div style=\"text-align: center;\">\\n[ NO DESCRIPTION ]\\n\\nIMDB Rating: [ NULL ]\\nCast: $CAST2\\nGenre: [ $GENRE2 ]\\n\\n$LINKS2\\n</div>\\n\\nTags: $GENRE2, $YEAR" > errors/"$OUTPUT"	#place everything in errors directory because it's incomplete
+			echo -e "<div style=\"text-align: center;\">\\n[ NO DESCRIPTION ]\\n\\nIMDB Rating: [ NULL ]\\nCast: $CAST2\\nGenre: [ $GENRE2 ]\\n\\n$LINKS2\\n</div>\\n\\nTags: [ $GENRE2, $YEAR ]" > errors/"$OUTPUT"	#place everything in errors directory because it's incomplete
 			echo "$OUTPUT" >> 'movie list.txt'
 			echo "$OUTPUT   --> incomplete" >> 'today.txt'		#place title in file to upload to dropbox & mail
 			rm moviedata
@@ -124,41 +124,40 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	else
 		if grep -qE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi		#skip movies that are already posted
 		IMG=$(grep "Poster" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get image URL
-		if grep -q 'N/A' <<< "$IMG"; then
-			DL_MOVIEDATA && IMG="$IMG2"		#try to get image URL from DL_MOVIEDATA function if image URL is N/A
-			curl -s "$IMG" -o movies/"$OUTPUT".jpg
-			#check img dimension
-			W=$(identify -format "%w" movies/"$OUTPUT".jpg)> /dev/null
-			H=$(identify -format "%h" movies/"$OUTPUT".jpg)> /dev/null
-			if [ $W -gt 400 ] || [ $W -lt 270 ]; then
-				mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
-				echo "$OUTPUT   --> img width problem" >> 'today.txt'
-				sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
-				echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
-				continue
-			elif [ $H -gt 500 ] || [ $H -lt 370 ]; then
-				mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
-				echo "$OUTPUT   --> img height problem" >> 'today.txt'
-				sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
-				echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
-				continue
-			fi
+		if grep -q 'N/A' <<< "$IMG"; then DL_MOVIEDATA && IMG="$IMG2"; fi	#try to get image URL from DL_MOVIEDATA function if image URL is N/A
+		curl -s "$IMG" -o movies/"$OUTPUT".jpg		#download img
+		#check img dimension
+		W=$(identify -format "%w" movies/"$OUTPUT".jpg)> /dev/null
+		H=$(identify -format "%h" movies/"$OUTPUT".jpg)> /dev/null
+		if [ $W -gt 400 ] || [ $W -lt 270 ]; then
+			mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
+			echo "$OUTPUT   --> img width problem" >> 'today.txt'
+			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
+			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
+			continue
+		elif [ $H -gt 500 ] || [ $H -lt 370 ]; then
+			mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
+			echo "$OUTPUT   --> img height problem" >> 'today.txt'
+			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
+			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
+			continue
+		else
+			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
 		fi
-		curl -s "$IMG" -o movies/"$OUTPUT".jpg
-		echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
 	fi
 	sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
 	echo "$TITLE" >> 'today.txt'		#place title in file to upload to dropbox & mail
 	if [ "$USER" != persie ]; then
-	echo | mutt -s "$TITLE" -i movies/"$OUTPUT" -a movies/"$OUTPUT".jpg -- persie@turbodl.xyz 'info@turbodl.xyz'
+	echo | mutt -s "$TITLE" -i movies/"$OUTPUT" -a movies/"$OUTPUT".jpg -- persie@turbodl.xyz
 	fi
 done < output	#end of loop
 
 #curl -s -X POST https://content.dropboxapi.com/2/files/upload --header "Authorization: Bearer DlS2vDBOAr4AAAAAAAABck-oi1CylO-l-Dg6lddfRy4vcq5iH8WJxU6jNkK__uGY" --header "Dropbox-API-Arg: {\"path\": \"/dev/movie list.txt\",\"mode\": \"overwrite\",\"autorename\": false,\"mute\": false,\"strict_conflict\": false}" --header "Content-Type: application/octet-stream" --data-binary @'movie list.txt' > /dev/null		#upload titles file to dropbox
 if [ "$USER" != persie ]; then
 if [ -z "$(ls -A errors)" ]; then
-	echo | mutt -s 'turbodlbot' -i 'today.txt' -a 'movie list.txt' logs.txt -- persie@turbodl.xyz 'info@turbodl.xyz'
+	echo | mutt -s 'turbodlbot' -i 'today.txt' -a 'movie list.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
 else
-	echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* 'movie list.txt' logs.txt -- persie@turbodl.xyz 'info@turbodl.xyz'
+	echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* 'movie list.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
 fi
+echo | mutt -s 'turbodlbot logs' -a logs.txt -- persie@turbodl.xyz
 fi
