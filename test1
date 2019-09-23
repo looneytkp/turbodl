@@ -9,6 +9,11 @@ else
 	mkdir -p ~/.tmp/movies ~/.tmp/errors; cd ~/.tmp
 fi
 
+exec 3>&1 4>&2
+trap 'exec 2>&4 1>&3' 0 1 2 3
+exec 1>logs 2>&1
+set -ex
+
 DL_MOVIEDATA(){
 	#function to use when both OMDB and tracktv API fail to get movie details
 	unset IMG2 CAST2 GENRE2 LINKS2
@@ -22,7 +27,7 @@ DL_MOVIEDATA(){
 	LINKS2=$(grep ^"<span style=\"font-family.*http.*a>" moviedata | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/")	#get download links
 	export IMG2 CAST2 GENRE2 LINKS2		#export variables to use outside the function
 }
-set -ex
+
 wget -q -O data "https://lightdlmovies.blogspot.com/search/label/MOVIES"		#download lightdl movies page
 curl -s -X POST https://content.dropboxapi.com/2/files/download --header "Authorization: Bearer DlS2vDBOAr4AAAAAAAABck-oi1CylO-l-Dg6lddfRy4vcq5iH8WJxU6jNkK__uGY" --header "Dropbox-API-Arg: {\"path\": \"/dev/movie list.txt\"}" > 'movie list.txt'		#download list of movies from dropbox
 grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//" -e "s/.*title='//" -e "s/<\/a>//" > output	#direct titles of movies into output file
@@ -30,6 +35,7 @@ grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2	#direct url
 echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
 
 while IFS= read -r OUTPUT; do	#loop through movie titles in output file
+	echo -e "\\n$OUTPUT\\n------------------------------"
 	if [ -e moviedata ]; then rm moviedata; fi
 	OUTPUT=$(grep "$OUTPUT" output | sed -e 's/[ ]$//')		#removes spaces if any at the end of titles
 	YEAR=$(grep -oE '[0-9][0-9][0-9][0-9]$' <<< "$OUTPUT")
@@ -60,7 +66,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 		done
 		if [ "$T" == null ]; then
 			DL_MOVIEDATA	#function
-			echo -e "<div style=\"text-align: center;\">\\n[ NO DESCRIPTION ]\\n\\nIMDB Rating: [ NULL ]\\nCast: $CAST2\\nGenre: [ $GENRE2 ]\\n\\n$LINKS2\\n</div>" > errors/"$OUTPUT"	#place everything in errors directory because it's incomplete
+			echo -e "<div style=\"text-align: center;\">\\n[ NO DESCRIPTION ]\\n\\nIMDB Rating: [ NULL ]\\nCast: $CAST2\\nGenre: [ $GENRE2 ]\\n\\n$LINKS2\\n</div>\\n\\nTags: $GENRE2, $YEAR" > errors/"$OUTPUT"	#place everything in errors directory because it's incomplete
 			echo "$OUTPUT" >> 'movie list.txt'
 			echo "$OUTPUT   --> incomplete" >> 'today.txt'		#place title in file to upload to dropbox & mail
 			rm moviedata
@@ -118,25 +124,28 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	else
 		if grep -qE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi		#skip movies that are already posted
 		IMG=$(grep "Poster" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get image URL
-		if grep -q 'N/A' <<< "$IMG"; then DL_MOVIEDATA && IMG="$IMG2"; fi	#try to get image URL from DL_MOVIEDATA function if image URL is N/A
-		curl -s "$IMG" -o movies/"$OUTPUT".jpg
-		W=$(identify -format "%w" movies/"$OUTPUT".jpg)> /dev/null
-		H=$(identify -format "%h" movies/"$OUTPUT".jpg)> /dev/null
-		if [ $W -gt 400 ] || [ $W -lt 270 ]; then
-			mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
-			echo "$OUTPUT   --> img width problem" >> 'today.txt'
-			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
-			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
-			continue
-		elif [ $H -gt 500 ] || [ $H -lt 370 ]; then
-			mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
-			echo "$OUTPUT   --> img height problem" >> 'today.txt'
-			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
-			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
-			continue
-		else
-			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
+		if grep -q 'N/A' <<< "$IMG"; then
+			DL_MOVIEDATA && IMG="$IMG2"		#try to get image URL from DL_MOVIEDATA function if image URL is N/A
+			curl -s "$IMG" -o movies/"$OUTPUT".jpg
+			#check img dimension
+			W=$(identify -format "%w" movies/"$OUTPUT".jpg)> /dev/null
+			H=$(identify -format "%h" movies/"$OUTPUT".jpg)> /dev/null
+			if [ $W -gt 400 ] || [ $W -lt 270 ]; then
+				mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
+				echo "$OUTPUT   --> img width problem" >> 'today.txt'
+				sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
+				echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
+				continue
+			elif [ $H -gt 500 ] || [ $H -lt 370 ]; then
+				mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
+				echo "$OUTPUT   --> img height problem" >> 'today.txt'
+				sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
+				echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
+				continue
+			fi
 		fi
+		curl -s "$IMG" -o movies/"$OUTPUT".jpg
+		echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
 	fi
 	sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
 	echo "$TITLE" >> 'today.txt'		#place title in file to upload to dropbox & mail
