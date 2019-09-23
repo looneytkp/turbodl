@@ -1,11 +1,11 @@
 #!/bin/env bash
 set -ex
 if [ ! -e /usr/bin/jq ]; then echo "install jq"; exit; fi
-rm -rf ~/turbodl 2> /dev/null #
-if [ -d ~/turbodl ]; then
-	cd ~/turbodl; mkdir -p movies errors
+rm -rf ~/.tmp 2> /dev/null #
+if [ -d ~/.tmp ]; then
+	cd ~/.tmp; mkdir -p movies errors
 else
-	mkdir -p ~/turbodl/movies ~/turbodl/errors; cd ~/turbodl
+	mkdir -p ~/.tmp/movies ~/.tmp/errors; cd ~/.tmp
 fi
 
 DL_MOVIEDATA(){
