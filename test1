@@ -29,12 +29,11 @@ grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2	#direct url
 echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
 
 while IFS= read -r OUTPUT; do	#loop through movie titles in output file
-#if ! grep -q 'Ambition' <<< "$OUTPUT"; then continue; fi
 	if [ -e moviedata ]; then rm moviedata; fi
 	OUTPUT=$(grep "$OUTPUT" output | sed -e 's/[ ]$//')		#removes spaces if any at the end of titles
 	YEAR=$(grep -oE '[0-9][0-9][0-9][0-9]$' <<< "$OUTPUT")
 	OUTPUT2=$(sed 's/[ -.][0-9][0-9][0-9][0-9]$//' <<< "$OUTPUT")
-	if grep -q "$OUTPUT" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi		#skip movies that are already posted
+	if grep -q ^"$OUTPUT" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi		#skip movies that are already posted
 	OMDB_NAME=$(sed "s/ /%20/g" <<< "$OUTPUT2") #|grep -ioE ^'([a-z].*[a-z]|[0-9].*[a-z]|[a-z].*[0-9]')#format current title by replacing spaces with %20 to work with API's
 #	PATTERN=$(sed -e 's/%20//g' -e "s/[ -.]//g" -e 's/\(.\)/\1.*/g' -e 's/..$//' <<< "$OMDB_NAME")		#format title into pattern used in finding download links
 
@@ -62,7 +61,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 			DL_MOVIEDATA	#function
 			echo -e "<div style=\"text-align: center;\">\\n[ NO DESCRIPTION ]\\n\\nIMDB Rating: [ NULL ]\\nCast: $CAST2\\nGenre: [ $GENRE2 ]\\n\\n$LINKS2\\n</div>" > errors/"$OUTPUT"	#place everything in errors directory because it's incomplete
 			echo "$OUTPUT" >> 'movie list.txt'
-			echo "$OUTPUT   --> error" >> 'today.txt'		#place title in file to upload to dropbox & mail
+			echo "$OUTPUT   --> incomplete" >> 'today.txt'		#place title in file to upload to dropbox & mail
 			rm moviedata
 			continue
 		fi
@@ -94,10 +93,10 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	RATING=$(grep "imdbRating" 'info' | sed -e 's/.*: "//' -e 's/",//')		#get movie rating
 	if [ "$RATING" != 'N/A' ]; then
 		RATE=$(sed 's/\.//' <<< "$RATING")
-		if [ $RATE -lt 55 ]; then echo "$OUTPUT   --> rating below 5.5" >> 'today.txt'continue; fi	#skip movie if rating is below 5.5
+		if [ $RATE -lt 55 ]; then echo "$OUTPUT   --> rating: $RATING" >> 'today.txt'; continue; fi	#skip movie if rating is below 5.5
 	else
 		echo "$OUTPUT" >> 'movie list.txt'
-		echo "$OUTPUT   --> error" >> 'today.txt'		#place title in file to upload to dropbox & mail
+		echo "$OUTPUT   --> rating: $RATING" >> 'today.txt'		#place title in file to upload to dropbox & mail
 	fi
 	GENRE=$(grep "Genre" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get genre
 	if grep -q 'N/A' <<< "$GENRE"; then DL_MOVIEDATA && GENRE="$GENRE2"; fi		#try to get genre from DL_MOVIEDATA function if genre is N/A
@@ -110,26 +109,30 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	if grep -q 'N/A' <<< "$CAST"; then DL_MOVIEDATA && CAST=$(sed 's/Cast: //' <<< "$CAST2"); fi	#try to get cast from DL_MOVIEDATA function if cast is N/A
 	#LINKS=$(grep -iE ^"<span style=\"font-family.*<a href=.*>$PATTERN.*a>" data | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/")		#get download links
 	LINKS=$(wget -q -O - $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/")	#grab movie page from lightdl & grep links
-	#if grep -qiE "(cam|hdts|hdtc)"
+	#if grep -qiE "(camrip|hdts|hdtc)"
 	CHECK=$(echo -e "$A\\n$B\\n$RATING\\n$GENRE" | grep -o 'N/A' || echo 'A/N')
 	if grep -q 'N/A' <<< "$CHECK"; then
 		echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
 		continue
 	else
+		if grep -q "$A" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi		#skip movies that are already posted
 		IMG=$(grep "Poster" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get image URL
 		if grep -q 'N/A' <<< "$IMG"; then DL_MOVIEDATA && IMG="$IMG2"; fi	#try to get image URL from DL_MOVIEDATA function if image URL is N/A
 		#write code to check dimension of image
 		curl -s "$IMG" -o movies/"$OUTPUT".jpg
 		echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
 	fi
-	echo "$OUTPUT" | tee -a 'movie list.txt' 'today.txt'		#place title in file to upload to dropbox & mail
-	echo | mutt -s "$TITLE" -i movies/"$OUTPUT" -a movies/"$OUTPUT".jpg -- persiejulius7@gmail.com
-#if grep -q 'Ambition' <<< "$OUTPUT"; then break; fi
+	echo "$TITLE" | tee -a 'movie list.txt' 'today.txt'		#place title in file to upload to dropbox & mail
+	if [ "$USER" != persie ]; then
+	echo | mutt -s "$TITLE" -i movies/"$OUTPUT" -a movies/"$OUTPUT".jpg -- persie@turbodl.xyz 'info@turbodl.com'
+	fi
 done < output	#end of loop
 
 #curl -s -X POST https://content.dropboxapi.com/2/files/upload --header "Authorization: Bearer DlS2vDBOAr4AAAAAAAABck-oi1CylO-l-Dg6lddfRy4vcq5iH8WJxU6jNkK__uGY" --header "Dropbox-API-Arg: {\"path\": \"/dev/movie list.txt\",\"mode\": \"overwrite\",\"autorename\": false,\"mute\": false,\"strict_conflict\": false}" --header "Content-Type: application/octet-stream" --data-binary @'movie list.txt' > /dev/null		#upload titles file to dropbox
+if [ "$USER" != persie ]; then
 if [ -z "$(ls -A errors)" ]; then
-	echo | mutt -s 'turbodlbot' -i 'today.txt' -- persiejulius7@gmail.com #info@turbodl.xyz
+	echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
 else
-	echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persiejulius7@gmail.com #info@turbodl.xyz
+	echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
+fi
 fi
