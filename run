@@ -115,7 +115,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	CAST=$(grep "Actors" 'info' | sed -e 's/.*: "//' -e 's/",//')		#get cast
 	if grep -q 'N/A' <<< "$CAST"; then DL_MOVIEDATA && CAST=$(sed 's/Cast: //' <<< "$CAST2"); fi	#try to get cast from DL_MOVIEDATA function if cast is N/A
 	#LINKS=$(grep -iE ^"<span style=\"font-family.*<a href=.*>$PATTERN.*a>" data | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/")		#get download links
-	LINKS=$(wget -q -O - $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/")	#grab movie page from lightdl & grep links
+	LINKS=$(wget -q -O - $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/" -e 's/CLICK HERE FOR SUBTITLES /Subtitles/')	#grab movie page from lightdl & grep links
 	#if grep -qiE "(camrip|hdts|hdtc)"
 	CHECK=$(echo -e "$A\\n$B\\n$RATING\\n$GENRE" | grep -o 'N/A' || echo 'A/N')
 	if grep -q 'N/A' <<< "$CHECK"; then
@@ -129,13 +129,13 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 		#check img dimension
 		W=$(identify -format "%w" movies/"$OUTPUT".jpg)> /dev/null
 		H=$(identify -format "%h" movies/"$OUTPUT".jpg)> /dev/null
-		if [ $W -gt 310 ] || [ $W -lt 290 ]; then
+		if [ $W -gt 330 ] || [ $W -lt 270 ]; then
 			mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
 			echo "$OUTPUT   --> img width problem" >> 'today.txt'
 			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
 			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
 			continue
-		elif [ $H -gt 460 ] || [ $H -lt 430 ]; then
+		elif [ $H -gt 480 ] || [ $H -lt 420 ]; then
 			mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
 			echo "$OUTPUT   --> img height problem" >> 'today.txt'
 			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
