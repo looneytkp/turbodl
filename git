@@ -1,0 +1,5 @@
+#!/bin/env bash
+#code by loonetkp
+set -e
+(cd ~/turbodl/ && git pull)
+sleep 1
