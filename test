@@ -8,11 +8,6 @@ else
 	mkdir -p ~/.tmp/movies ~/.tmp/errors; cd ~/.tmp
 fi
 
-#exec 3>&1 4>&2
-#trap 'exec 2>&4 1>&3' 0 1 2 3
-#exec 1>logs.txt 2>&1
-set -ex
-
 DL_MOVIEDATA(){
 	#function to use when both OMDB and tracktv API fail to get movie details
 	unset IMG2 CAST2 GENRE2 LINKS2
@@ -42,6 +37,13 @@ while true; do
 	done
 	COUNT1=0; COUNT=$((COUNT+1))
 done
+
+if [ "$USER" != persie ]; then
+	exec 3>&1 4>&2
+	trap 'exec 2>&4 1>&3' 0 1 2 3
+	exec 1>logs.txt 2>&1
+fi
+set -ex
 
 wget -q -O data "https://lightdlmovies.blogspot.com/search/label/MOVIES"		#download lightdl movies page
 grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//" -e "s/.*title='//" -e "s/<\/a>//" > output	#direct titles of movies into output file
