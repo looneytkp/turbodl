@@ -1,5 +1,4 @@
 #!/bin/env bash
-#code by loonetkp
 
 if [ ! -e /usr/bin/jq ]; then echo "install jq"; exit; fi
 rm -rf ~/.tmp 2> /dev/null #
