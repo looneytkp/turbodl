@@ -179,7 +179,7 @@ if [ "$USER" == root ]; then
 
 echo -e "\\n---sorting randomly---"
 SORTED_POSTS=$(cat titles.txt | sort -Rr)
-echo "$SORTED_POSTS" >> titles.txt
+echo "$SORTED_POSTS" > titles.txt
 while IFS= read -r SORTED; do
 	E=$(grep -o '#.*' <<< "$SORTED")
 	F=$(sed 's/ #.*//' <<< "$SORTED")
