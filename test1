@@ -3,7 +3,7 @@
 if [ ! -e /usr/bin/jq ]; then echo "install jq"; exit; fi
 rm -rf ~/.tmp 2> /dev/null #
 if [ -d ~/.tmp ]; then
-	cd ~/.tmp; mkdir -p movies errors
+	cd ~/.tmp; rm -rf movies errors today.txt output* 'info' file.x data
 else
 	mkdir -p ~/.tmp/movies ~/.tmp/errors; cd ~/.tmp
 fi
@@ -24,18 +24,19 @@ DL_MOVIEDATA(){
 
 #curl -s -X POST https://content.dropboxapi.com/2/files/download --header "Authorization: Bearer DlS2vDBOAr4AAAAAAAABck-oi1CylO-l-Dg6lddfRy4vcq5iH8WJxU6jNkK__uGY" --header "Dropbox-API-Arg: {\"path\": \"/dev/movie list.txt\"}" > 'movie list.txt'		#download list of movies from dropbox
 #get movies posted to website
+
 COUNT=1; COUNT1=0
 echo '---script starts above this---' > 'movie list.txt'
 while true; do
-	curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=24" > file.x
+	curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=50" > file.x
 	if grep -q 'rest_post_invalid_page_number' file.x; then break; fi
-	while [ $COUNT1 -lt 24 ]; do
+	while [ $COUNT1 -lt 50 ]; do
 		title=$(cat file.x | jq -r ".[$COUNT1].title.rendered" | sed -e 's/&#8211;/-/g' -e "s/&#8217;/'/g" -e "s/&#038;/\&/g" -e "s/&#8216;/'/g" -e 's/&#822[0-1];/"/g' -e 's/&amp;/\&/g')
 		if [ "$title" == null ]; then break; fi
-		echo "$title" >> 'movie list.txt'
+		grep "$title" 'movie list' || echo "$title" >> 'movie list.txt'
 		COUNT1=$((COUNT1+1))
 	done
-	COUNT1=0; COUNT=$((COUNT+1))
+	break #COUNT1=0; COUNT=$((COUNT+1))
 done
 
 if [ "$USER" == root ]; then
