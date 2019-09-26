@@ -33,7 +33,7 @@ while true; do
 	while [ $COUNT1 -lt 50 ]; do
 		title=$(cat file.x | jq -r ".[$COUNT1].title.rendered" | sed -e 's/&#8211;/-/g' -e "s/&#8217;/'/g" -e "s/&#038;/\&/g" -e "s/&#8216;/'/g" -e 's/&#822[0-1];/"/g' -e 's/&amp;/\&/g')
 		if [ "$title" == null ]; then break; fi
-		grep "$title" 'movie list' || echo "$title" >> 'movie list.txt'
+		grep "$title" 'movie list.txt' || echo "$title" >> 'movie list.txt'
 		COUNT1=$((COUNT1+1))
 	done
 	break #COUNT1=0; COUNT=$((COUNT+1))
