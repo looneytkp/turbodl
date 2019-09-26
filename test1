@@ -179,7 +179,7 @@ if [ "$USER" == root ]; then
 	echo -e "\\n---sorting randomly---"
 	SORTED_POSTS=$(cat titles.txt | sort -Rr)
 	while IFS= read -r SORTED; do
-		E=$(grep -o '#.*' <<< "$SORTED")
+		E=$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')
 		F=$(sed 's/ #.*//' <<< "$SORTED")
 		echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
 	done <<< "$SORTED_POSTS"
