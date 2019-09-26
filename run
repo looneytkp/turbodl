@@ -3,7 +3,7 @@
 if [ ! -e /usr/bin/jq ]; then echo "install jq"; exit; fi
 rm -rf ~/.tmp 2> /dev/null #
 if [ -d ~/.tmp ]; then
-	cd ~/.tmp; mkdir -p movies errors
+	cd ~/.tmp; rm -rf movies errors today.txt output* 'info' file.x data titles.txt
 else
 	mkdir -p ~/.tmp/movies ~/.tmp/errors; cd ~/.tmp
 fi
@@ -24,21 +24,22 @@ DL_MOVIEDATA(){
 
 #curl -s -X POST https://content.dropboxapi.com/2/files/download --header "Authorization: Bearer DlS2vDBOAr4AAAAAAAABck-oi1CylO-l-Dg6lddfRy4vcq5iH8WJxU6jNkK__uGY" --header "Dropbox-API-Arg: {\"path\": \"/dev/movie list.txt\"}" > 'movie list.txt'		#download list of movies from dropbox
 #get movies posted to website
+
 COUNT=1; COUNT1=0
 echo '---script starts above this---' > 'movie list.txt'
 while true; do
-	curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=24" > file.x
+	curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=50" > file.x
 	if grep -q 'rest_post_invalid_page_number' file.x; then break; fi
-	while [ $COUNT1 -lt 24 ]; do
+	while [ $COUNT1 -lt 50 ]; do
 		title=$(cat file.x | jq -r ".[$COUNT1].title.rendered" | sed -e 's/&#8211;/-/g' -e "s/&#8217;/'/g" -e "s/&#038;/\&/g" -e "s/&#8216;/'/g" -e 's/&#822[0-1];/"/g' -e 's/&amp;/\&/g')
 		if [ "$title" == null ]; then break; fi
-		echo "$title" >> 'movie list.txt'
+		grep "$title" 'movie list.txt' || echo "$title" >> 'movie list.txt'
 		COUNT1=$((COUNT1+1))
 	done
-	COUNT1=0; COUNT=$((COUNT+1))
+	break #COUNT1=0; COUNT=$((COUNT+1))
 done
 
-if [ "$USER" != persie ]; then
+if [ "$USER" == root ]; then
 	exec 3>&1 4>&2
 	trap 'exec 2>&4 1>&3' 0 1 2 3
 	exec 1>logs.txt 2>&1
@@ -126,7 +127,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	fi
 	GENRE=$(grep "Genre" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get genre
 	if grep -q 'N/A' <<< "$GENRE"; then DL_MOVIEDATA && GENRE="$GENRE2"; fi		#try to get genre from DL_MOVIEDATA function if genre is N/A
-	if grep -qi 'documentary' <<< "$GENRE"; then continue; fi	#skip documentaries
+	if grep -qi 'documentary' <<< "$GENRE"; then "$OUTPUT   --> documentary" >> 'today.txt'; continue; fi	#skip documentaries
 	A=$(grep "Title" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get title
 	B=$(grep "Year.*:" 'info' | sed -e 's/.*: "//' -e 's/",//')		#get year
 	TITLE="$A ($B)"		#format title and year
@@ -155,7 +156,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
 			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
 			continue
-		elif [ $H -gt 480 ] || [ $H -lt 415 ]; then
+		elif [ $H -gt 480 ] || [ $H -lt 400 ]; then
 			mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
 			echo "$OUTPUT   --> img height problem" >> 'today.txt'
 			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
@@ -165,19 +166,28 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
 			echo "$TITLE" >> 'today.txt'		#place title in file to upload to dropbox & mail
 			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
+			echo "$TITLE #$OUTPUT" >> titles.txt
 		fi
 	fi
-	if [ "$USER" != persie ]; then
-	echo | mutt -s "$TITLE" -i movies/"$OUTPUT" -a movies/"$OUTPUT".jpg -- Ud37asAUd8a7@turbodl.xyz
-	fi
+#	if [ "$USER" == root ]; then
+#	echo | mutt -s "$TITLE" -i movies/"$OUTPUT" -a movies/"$OUTPUT".jpg -- Ud37asAUd8a7@turbodl.xyz
+#	fi
 done < output	#end of loop
 
 #curl -s -X POST https://content.dropboxapi.com/2/files/upload --header "Authorization: Bearer DlS2vDBOAr4AAAAAAAABck-oi1CylO-l-Dg6lddfRy4vcq5iH8WJxU6jNkK__uGY" --header "Dropbox-API-Arg: {\"path\": \"/dev/movie list.txt\",\"mode\": \"overwrite\",\"autorename\": false,\"mute\": false,\"strict_conflict\": false}" --header "Content-Type: application/octet-stream" --data-binary @'movie list.txt' > /dev/null		#upload titles file to dropbox
-if [ "$USER" != persie ]; then
-if [ -z "$(ls -A errors)" ]; then
-	echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
-else
-	echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
-fi
-echo | mutt -s 'turbodlbot log' -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
+if [ "$USER" == root ]; then
+	echo -e "\\n---sorting randomly---"
+	SORTED_POSTS=$(cat titles.txt | sort -Rr)
+	while IFS= read -r SORTED; do
+		E=$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')
+		F=$(sed 's/ #.*//' <<< "$SORTED")
+		echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
+	done <<< "$SORTED_POSTS"
+
+	if [ -z "$(ls -A errors)" ]; then
+		echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
+	else
+		echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
+	fi
+	echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
 fi
