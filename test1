@@ -156,7 +156,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
 			echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
 			continue
-		elif [ $H -gt 480 ] || [ $H -lt 415 ]; then
+		elif [ $H -gt 480 ] || [ $H -lt 400 ]; then
 			mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
 			echo "$OUTPUT   --> img height problem" >> 'today.txt'
 			sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
@@ -176,20 +176,18 @@ done < output	#end of loop
 
 #curl -s -X POST https://content.dropboxapi.com/2/files/upload --header "Authorization: Bearer DlS2vDBOAr4AAAAAAAABck-oi1CylO-l-Dg6lddfRy4vcq5iH8WJxU6jNkK__uGY" --header "Dropbox-API-Arg: {\"path\": \"/dev/movie list.txt\",\"mode\": \"overwrite\",\"autorename\": false,\"mute\": false,\"strict_conflict\": false}" --header "Content-Type: application/octet-stream" --data-binary @'movie list.txt' > /dev/null		#upload titles file to dropbox
 if [ "$USER" == root ]; then
+	echo -e "\\n---sorting randomly---"
+	SORTED_POSTS=$(cat titles.txt | sort -Rr)
+	while IFS= read -r SORTED; do
+		E=$(grep -o '#.*' <<< "$SORTED")
+		F=$(sed 's/ #.*//' <<< "$SORTED")
+		echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
+	done <<< "$SORTED_POSTS"
 
-echo -e "\\n---sorting randomly---"
-SORTED_POSTS=$(cat titles.txt | sort -Rr)
-echo "$SORTED_POSTS" > titles.txt
-while IFS= read -r SORTED; do
-	E=$(grep -o '#.*' <<< "$SORTED")
-	F=$(sed 's/ #.*//' <<< "$SORTED")
-#	echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
-done <<< "$SORTED_POSTS"
-exit
-if [ -z "$(ls -A errors)" ]; then
-	echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
-else
-	echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
-fi
-echo | mutt -s 'turbodlbot log' -a logs.txt 'movie list.txt' titles.txt -- persie@turbodl.xyz
+	if [ -z "$(ls -A errors)" ]; then
+		echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
+	else
+		echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
+	fi
+	echo | mutt -s 'turbodlbot log' -a logs.txt 'movie list.txt' titles.txt -- persie@turbodl.xyz
 fi
