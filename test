@@ -1,7 +1,6 @@
 #!/bin/env bash
 
 if [ ! -e /usr/bin/jq ]; then echo "install jq"; exit; fi
-rm -rf ~/.tmp 2> /dev/null #
 if [ -d ~/.tmp ]; then
 	cd ~/.tmp; rm -rf movies errors today.txt output* 'info' file.x data titles.txt
 else
@@ -127,7 +126,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	fi
 	GENRE=$(grep "Genre" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get genre
 	if grep -q 'N/A' <<< "$GENRE"; then DL_MOVIEDATA && GENRE="$GENRE2"; fi		#try to get genre from DL_MOVIEDATA function if genre is N/A
-	if grep -qi 'documentary' <<< "$GENRE"; then "$OUTPUT   --> documentary" >> 'today.txt'; continue; fi	#skip documentaries
+	if grep -qi 'documentary' <<< "$GENRE"; then echo "$OUTPUT   --> documentary" >> 'today.txt'; continue; fi	#skip documentaries
 	A=$(grep "Title" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get title
 	B=$(grep "Year.*:" 'info' | sed -e 's/.*: "//' -e 's/",//')		#get year
 	TITLE="$A ($B)"		#format title and year
