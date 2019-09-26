@@ -2,7 +2,7 @@
 
 if [ ! -e /usr/bin/jq ]; then echo "install jq"; exit; fi
 if [ -d ~/.tmp ]; then
-	cd ~/.tmp; rm movies/* errors/* today.txt output* 'info' file.x data titles.txt
+	cd ~/.tmp; rm movies/* errors/* today.txt output* 'info' file.x data titles.txt 2> /dev/null
 else
 	mkdir -p ~/.tmp/movies ~/.tmp/errors; cd ~/.tmp
 fi
