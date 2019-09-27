@@ -27,9 +27,9 @@ DL_MOVIEDATA(){
 COUNT=1; COUNT1=0
 echo '---script starts above this---' > 'movie list.txt'
 while true; do
-	curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=50" > file.x
+	curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100" > file.x
 	if grep -q 'rest_post_invalid_page_number' file.x; then break; fi
-	while [ $COUNT1 -lt 50 ]; do
+	while [ $COUNT1 -lt 100 ]; do
 		title=$(cat file.x | jq -r ".[$COUNT1].title.rendered" | sed -e 's/&#8211;/-/g' -e "s/&#8217;/'/g" -e "s/&#038;/\&/g" -e "s/&#8216;/'/g" -e 's/&#822[0-1];/"/g' -e 's/&amp;/\&/g')
 		if [ "$title" == null ]; then break; fi
 		grep "$title" 'movie list.txt' || echo "$title" >> 'movie list.txt'
@@ -38,6 +38,11 @@ while true; do
 	break #COUNT1=0; COUNT=$((COUNT+1))
 done
 
+wget -q -O data "https://lightdlmovies.blogspot.com/search/label/MOVIES"		#download lightdl movies page
+grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//" -e "s/.*title='//" -e "s/<\/a>//" > output	#direct titles of movies into output file
+grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2	#direct urls of movies into output2 file
+echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
+
 if [ "$USER" == root ]; then
 	exec 3>&1 4>&2
 	trap 'exec 2>&4 1>&3' 0 1 2 3
@@ -45,21 +50,17 @@ if [ "$USER" == root ]; then
 fi
 set -ex
 
-wget -q -O data "https://lightdlmovies.blogspot.com/search/label/MOVIES"		#download lightdl movies page
-grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//" -e "s/.*title='//" -e "s/<\/a>//" > output	#direct titles of movies into output file
-grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2	#direct urls of movies into output2 file
-echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
-
 while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	echo -e "\\n$OUTPUT\\n------------------------------"
 	if [ -e moviedata ]; then rm moviedata; fi
 	OUTPUT=$(grep "$OUTPUT" output | sed -e 's/[ ]$//')		#removes spaces if any at the end of titles
-	YEAR=$(grep -oE '[0-9][0-9][0-9][0-9]$' <<< "$OUTPUT")
+	YEAR=$(grep -oE '[0-9][0-9][0-9][0-9]$' <<< "$OUTPUT" || echo 'null')
+	if grep -q 'null' <<< "$YEAR"; then sed -i "1s/^/$OUTPUT\\n/" 'movie list.txt'; echo "$OUTPUT   --> year not found" >> 'today.txt'; continue; fi
 	OUTPUT2=$(sed 's/[ -.][0-9][0-9][0-9][0-9]$//' <<< "$OUTPUT")
-	if grep -q "$OUTPUT2.*$YEAR" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi		#skip movies that are already posted
+	if grep -q "$OUTPUT2.*$YEAR" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi #func		#skip movies that are already posted
 	if grep -q '&' <<< "$OUTPUT2"; then
 		OUTPUT3=$(sed 's/\&/and/' <<< "$OUTPUT2")
-		if grep -q "$OUTPUT3.*$YEAR" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi
+		if grep -q "$OUTPUT3.*$YEAR" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi	#func
 	fi
 	OMDB_NAME=$(sed "s/ /%20/g" <<< "$OUTPUT2") #|grep -ioE ^'([a-z].*[a-z]|[0-9].*[a-z]|[a-z].*[0-9]')#format current title by replacing spaces with %20 to work with API's
 #	PATTERN=$(sed -e 's/%20//g' -e "s/[ -.]//g" -e 's/\(.\)/\1.*/g' -e 's/..$//' <<< "$OMDB_NAME")		#format title into pattern used in finding download links
@@ -135,6 +136,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 	if grep -q 'N/A' <<< "$CAST"; then DL_MOVIEDATA && CAST=$(sed 's/Cast: //' <<< "$CAST2"); fi	#try to get cast from DL_MOVIEDATA function if cast is N/A
 	#LINKS=$(grep -iE ^"<span style=\"font-family.*<a href=.*>$PATTERN.*a>" data | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/")		#get download links
 	LINKS=$(wget -q -O - $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/" -e 's/CLICK HERE FOR SUBTITLES /Subtitles/')	#grab movie page from lightdl & grep links
+	md5=$(md5sum <<< $LINKS)
 	#if grep -qiE "(camrip|hdts|hdtc)"
 	CHECK=$(echo -e "$A\\n$B\\n$RATING\\n$GENRE" | grep -o 'N/A' || echo 'A/N')
 	if grep -q 'N/A' <<< "$CHECK"; then
@@ -142,7 +144,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
 		echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
 		continue
 	else
-		if grep -qE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi		#skip movies that are already posted
+		if grep -qE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi	#func	#skip movies that are already posted
 		IMG=$(grep "Poster" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get image URL
 		if grep -q 'N/A' <<< "$IMG"; then DL_MOVIEDATA && IMG="$IMG2"; fi	#try to get image URL from DL_MOVIEDATA function if image URL is N/A
 		curl -s "$IMG" -o movies/"$OUTPUT".jpg		#download img
