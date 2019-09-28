@@ -203,6 +203,4 @@ if [ "$USER" == root ]; then
     fi
     echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
 fi
-DATE=$(date)
-echo > "$DATE"
 
