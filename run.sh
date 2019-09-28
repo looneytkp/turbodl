@@ -23,7 +23,8 @@ DL_MOVIEDATA(){
 
 GET_UPDATE(){
 	if grep -qE "$OUTPUT2" 'movie list.txt'; then
-        LINKS3=$(curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT2&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
+        OUTPUT3=$(sed "s/ /%20/g" <<< "$OUTPUT2")
+        LINKS3=$(curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
         LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
         MD5_1=$(md5sum <<< "$LINKS3")
         MD5_2=$(md5sum <<< "$LINKS4")
@@ -83,17 +84,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
     YEAR=$(grep -oE '[0-9][0-9][0-9][0-9]$' <<< "$OUTPUT" || echo 'null')
     if grep -q 'null' <<< "$YEAR"; then sed -i "1s/^/$OUTPUT\\n/" 'movie list.txt'; echo "$OUTPUT   --> year not found" >> 'today.txt'; continue; fi
     OUTPUT2=$(sed 's/[ -.][0-9][0-9][0-9][0-9]$//' <<< "$OUTPUT")
-#    if grep -q "$OUTPUT2.*$YEAR" 'movie list.txt'; then
-#        echo "$OUTPUT   --> already posted" >> 'today.txt'
-#        GET_UPDATE
-#        continue
-#    fi #func		#skip movies that are already posted
-#    if grep -q '&' <<< "$OUTPUT2"; then
-#        OUTPUT3=$(sed 's/\&/and/' <<< "$OUTPUT2")
-#        if grep -q "$OUTPUT3.*$YEAR" 'movie list.txt'; then echo "$OUTPUT   --> already posted" >> 'today.txt'; continue; fi	#func
-#    fi
     OMDB_NAME=$(sed "s/ /%20/g" <<< "$OUTPUT2")		#format current title by replacing spaces with %20 to work with API's
-    #PATTERN=$(sed -e 's/%20//g' -e "s/[ -.]//g" -e 's/\(.\)/\1.*/g' -e 's/..$//' <<< "$OMDB_NAME")		#format title into pattern used in finding download links
 
     if grep -qo '[0-9][0-9][0-9][0-9]' <<< $YEAR; then
         curl -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?t=$OMDB_NAME&y=$YEAR&type=movie&plot=short&apikey=7759dbc7" | jq "." > "info" 2> /dev/null	#OMDB API to get details of movie
@@ -185,12 +176,12 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
             continue
         else
             sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
-            if ! grep -q '[UPDATED]' <<< "$TITLE"; then echo "$TITLE" >> 'today.txt'; fi		#place title in file to upload to dropbox & mail
+            if [ "$TITLE2" ]; then echo "$TITLE2" >> 'today.txt'; else echo "$TITLE" >> 'today.txt'; fi		#place title in file to upload to mail
             echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
             echo "$TITLE #$OUTPUT" >> titles.txt
         fi
     fi
-done < output	#end of loop
+done < output	#end loop
 
 if [ "$USER" == root ]; then
     echo -e "\\n---sorting randomly---"
@@ -208,4 +199,3 @@ if [ "$USER" == root ]; then
     fi
     echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
 fi
-
