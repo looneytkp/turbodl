@@ -59,7 +59,7 @@ while true; do
     while [ $COUNT1 -lt 100 ]; do
 		title=$(cat file.x | jq -r ".[$COUNT1].title.rendered" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
         if [ "$title" == null ]; then break; fi
-        grep "$title" 'movie list.txt' || echo "$title" >> 'movie list.txt'
+        grep -q "$title" 'movie list.txt' || echo "$title" >> 'movie list.txt'
         COUNT1=$((COUNT1+1))
     done
     break #COUNT1=0; COUNT=$((COUNT+1))
@@ -203,3 +203,5 @@ if [ "$USER" == root ]; then
     fi
     echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
 fi
+DATE=$(date)
+echo > "$DATE"
