@@ -8,20 +8,21 @@ else
 fi
 
 DL_MOVIEDATA(){
-    #function to use when both OMDB and tracktv API fail to get movie details
+    #function for when both OMDB and tracktv API fail to get movie data
     unset IMG2 CAST2 GENRE2 LINKS2
     if [ ! -e moviedata ]; then
         curl -s -o moviedata $(grep "$OUTPUT" output2 | grep -o http.*html)		#grab movie page from lightdl
     fi
-    IMG2=$(grep -o ^"<a href.*media-amazon.*jpg" moviedata | sed 's/jpg".*/jpg"/')		#get image URL
-    CAST2=$(grep -o ^"Stars.*<" moviedata | sed -e "s/Stars/Cast/" -e "s/<//")		#get cast details
-    GENRE2=$(grep ^Genre moviedata | sed -e 's/Genre: //' -e "s/<br.*//")		#get genre details
+    IMG2=$(grep -o ^"<a href.*media-amazon.*jpg" moviedata | sed 's/jpg".*/jpg"/')
+    CAST2=$(grep -o ^"Stars.*<" moviedata | sed -e "s/Stars/Cast/" -e "s/<//")
+    GENRE2=$(grep ^Genre moviedata | sed -e 's/Genre: //' -e "s/<br.*//")
     if grep -qi 'documentary' <<< "$GENRE"; then continue; fi	#skip documentaries
-    LINKS2=$(grep ^"<span style=\"font-family.*http.*a>" moviedata | sed -e "s/.*<a/<a/" -e "s/a>.*/a>/")	#get download links
-    export IMG2 CAST2 GENRE2 LINKS2		#export variables to use outside the function
+    LINKS2=$(grep ^"<span style=\"font-family.*http.*a>" moviedata | sed -e "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")
+    export IMG2 CAST2 GENRE2 LINKS2
 }
 
 GET_UPDATE(){
+    #function for when a post exists on turbodl
 	if grep -qE "$OUTPUT2" 'movie list.txt'; then
         OUTPUT3=$(sed "s/ /%20/g" <<< "$OUTPUT2")
         LINKS3=$(curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
@@ -32,8 +33,8 @@ GET_UPDATE(){
             echo "$OUTPUT   --> already posted" >> 'today.txt'
             CONTINUE='YES'; export CONTINUE
         else
-            TITLE="$TITLE [UPDATED]"
-            echo "$TITLE" >> 'today.txt'
+            TITLE2="$TITLE [UPDATED]"
+            echo "$TITLE2" >> 'today.txt'
         fi
     elif grep -q "$A" 'movie list.txt'; then
         AA=$(sed "s/ /%20/g" <<< "$A")
@@ -45,14 +46,13 @@ GET_UPDATE(){
             echo "$OUTPUT   --> already posted" >> 'today.txt'
             CONTINUE='YES'; export CONTINUE
         else
-            TITLE="$TITLE [UPDATED]"
-            echo "$TITLE" >> 'today.txt'
+            TITLE2="$TITLE [UPDATED]"
+            echo "$TITLE2" >> 'today.txt'
         fi
     fi
 }
 
 COUNT=1; COUNT1=0
-echo '---script starts above this---' > 'movie list.txt'
 while true; do
     curl -s -o file.x -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100"
     if grep -q 'rest_post_invalid_page_number' file.x; then break; fi
@@ -65,9 +65,9 @@ while true; do
     break #COUNT1=0; COUNT=$((COUNT+1))
 done
 
-curl -s -o data "https://lightdlmovies.blogspot.com/search/label/MOVIES"		#download lightdl movies page
-grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//" > output	#direct titles of movies into output file
-grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2	#direct urls of movies into output2 file
+curl -s -o data "https://lightdlmovies.blogspot.com/search/label/MOVIES"
+grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//" > output
+grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2
 echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
 
 if [ "$USER" == root ]; then
@@ -80,9 +80,9 @@ set -ex
 while IFS= read -r OUTPUT; do	#loop through movie titles in output file
     echo -e "\\n$OUTPUT\\n------------------------------"
     if [ -e moviedata ]; then rm moviedata; fi
-    OUTPUT=$(grep "$OUTPUT" output | sed -e 's/  $//; s/ $//')		#removes spaces if any at the end of titles
+    OUTPUT=$(grep "$OUTPUT" output | sed -e 's/  $//; s/ $//')
     YEAR=$(grep -oE '[0-9][0-9][0-9][0-9]$' <<< "$OUTPUT" || echo 'null')
-    if grep -q 'null' <<< "$YEAR"; then sed -i "1s/^/$OUTPUT\\n/" 'movie list.txt'; echo "$OUTPUT   --> year not found" >> 'today.txt'; continue; fi
+    if grep -q 'null' <<< "$YEAR"; then echo "$OUTPUT   --> year not found" >> 'today.txt'; continue; fi
     OUTPUT2=$(sed 's/[ -.][0-9][0-9][0-9][0-9]$//' <<< "$OUTPUT")
     OMDB_NAME=$(sed "s/ /%20/g" <<< "$OUTPUT2")		#format current title by replacing spaces with %20 to work with API's
 
@@ -112,73 +112,77 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
             fi
         done
         if [ "$T" == null ]; then
-            DL_MOVIEDATA	#function
+            DL_MOVIEDATA
+            if grep -qiE "(h.*d.*cm).*mkv" <<< "$LINKS2"; then      #check for CAM links
+                echo "$OUTPUT   --> CAM" >> 'today.txt'
+                continue
+            fi
             echo -e "<div style=\"text-align: center;\">\\n[ NO DESCRIPTION ]\\n\\nIMDB Rating: [ NULL ]\\nCast: $CAST2\\nGenre: [ $GENRE2 ]\\n\\n$LINKS2\\n</div>\\n\\nTags: [ $GENRE2, $YEAR ]" > errors/"$OUTPUT"	#place everything in errors directory because it's incomplete
-            sed -i "1s/^/$OUTPUT\\n/" 'movie list.txt'
-            echo "$OUTPUT   --> incomplete details" >> 'today.txt'		#place title in file to upload to dropbox & mail
+            echo "$OUTPUT   --> incomplete details" >> 'today.txt'
             rm moviedata
             continue
         fi
     fi
 
     #execute if OMDB API is successful
-    GENRE=$(grep "Genre" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get genre
-    if grep -q 'N/A' <<< "$GENRE"; then DL_MOVIEDATA && GENRE="$GENRE2"; fi		#try to get genre from DL_MOVIEDATA function if genre is N/A
+    GENRE=$(grep "Genre" 'info' | sed -e 's/.*: "//' -e 's/",//')
+    if grep -q 'N/A' <<< "$GENRE"; then DL_MOVIEDATA && GENRE="$GENRE2"; fi		#alternative to get genre if genre is N/A
     if grep -qi 'documentary' <<< "$GENRE"; then echo "$OUTPUT   --> documentary" >> 'today.txt'; continue; fi	#skip documentaries
 
-    A=$(grep "Title" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get title
-    B=$(grep "Year.*:" 'info' | sed -e 's/.*: "//' -e 's/",//')		#get year
+    A=$(grep "Title" 'info' | sed -e 's/.*: "//' -e 's/",//')
+    B=$(grep "Year.*:" 'info' | sed -e 's/.*: "//' -e 's/",//')
     TITLE="$A ($B)"		#format title and year
-    PLOT=$(grep "Plot" 'info' | sed -e 's/.*: "//' -e 's/",//')		#get movie plot
-    CAST=$(grep "Actors" 'info' | sed -e 's/.*: "//' -e 's/",//')		#get cast
-    if grep -q 'N/A' <<< "$CAST"; then DL_MOVIEDATA && CAST=$(sed 's/Cast: //' <<< "$CAST2"); fi	#try to get cast from DL_MOVIEDATA function if cast is N/A
-    LINKS=$(curl -s $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")	#grab movie page from lightdl & grep links
+    PLOT=$(grep "Plot" 'info' | sed -e 's/.*: "//' -e 's/",//')
+    CAST=$(grep "Actors" 'info' | sed -e 's/.*: "//' -e 's/",//')
+    if grep -q 'N/A' <<< "$CAST"; then DL_MOVIEDATA && CAST=$(sed 's/Cast: //' <<< "$CAST2"); fi	#alternative to get cast if cast is N/A
+    LINKS=$(curl -s $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")
     if grep -qiE "(h.*d.*cm).*mkv" <<< "$LINKS"; then      #check for CAM links
-        sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
         echo "$OUTPUT   --> CAM" >> 'today.txt'
         continue
     fi
-    RATING=$(grep "imdbRating" 'info' | sed -e 's/.*: "//' -e 's/",//')		#get movie rating
+    RATING=$(grep "imdbRating" 'info' | sed -e 's/.*: "//' -e 's/",//')
     if [ "$RATING" != 'N/A' ]; then
         RATE=$(sed 's/\.//' <<< "$RATING")
         if [ "$RATE" -lt 55 ]; then echo "$OUTPUT   --> rating: $RATING" >> 'today.txt'; continue; fi	#skip movie if rating is below 5.5
     else
-        echo "$OUTPUT   --> rating: $RATING" >> 'today.txt'		#place title in file to upload to dropbox & mail
+        echo "$OUTPUT   --> rating: $RATING" >> 'today.txt'
     fi
 
     CHECK=$(echo -e "$A\\n$B\\n$RATING\\n$GENRE" | grep -o 'N/A' || echo 'A/N')
     if grep -q 'N/A' <<< "$CHECK"; then
-        sed -i "1s/^/$OUTPUT\\n/" 'movie list.txt'
         echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
         continue
     else
         if grep -qE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then
             GET_UPDATE; if [ "$CONTINUE" ]; then unset CONTINUE; continue; fi
-        fi	#func	#skip movies that are already posted
-        IMG=$(grep "Poster" 'info' | sed -e 's/.*: "//' -e 's/",//')	#get image URL
-        if grep -q 'N/A' <<< "$IMG"; then DL_MOVIEDATA && IMG="$IMG2"; fi	#try to get image URL from DL_MOVIEDATA function if image URL is N/A
+        fi
+        IMG=$(grep "Poster" 'info' | sed -e 's/.*: "//' -e 's/",//')
+        if grep -q 'N/A' <<< "$IMG"; then DL_MOVIEDATA && IMG="$IMG2"; fi	#alternative to get image URL if image URL is N/A
         curl -s "$IMG" -o movies/"$OUTPUT".jpg		#download img
 
-        #check img dimension
+        #check img dimension size
         W=$(identify -format "%w" movies/"$OUTPUT".jpg)> /dev/null
         H=$(identify -format "%h" movies/"$OUTPUT".jpg)> /dev/null
-        if [ $W -gt 330 ] || [ $W -lt 270 ]; then
+        if [ $W -gt 330 ] || [ $W -lt 270 ]; then       #width size
             mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
             echo "$OUTPUT   --> img width problem" >> 'today.txt'
-            sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
             echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
             continue
-        elif [ $H -gt 480 ] || [ $H -lt 400 ]; then
+        elif [ $H -gt 480 ] || [ $H -lt 400 ]; then     #height size
             mv movies/"$OUTPUT".jpg errors/"$OUTPUT".jpg
             echo "$OUTPUT   --> img height problem" >> 'today.txt'
-            sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
             echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
             continue
         else
             sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
-            if [ "$TITLE2" ]; then echo "$TITLE2" >> 'today.txt'; else echo "$TITLE" >> 'today.txt'; fi		#place title in file to upload to mail
+            if [ "$TITLE2" ]; then
+                echo "$TITLE2" >> 'today.txt'
+                echo "$TITLE2 #$OUTPUT" >> 'titles.txt'
+            else
+                echo "$TITLE" >> 'today.txt'
+                echo "$TITLE #$OUTPUT" >> titles.txt
+            fi
             echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
-            echo "$TITLE #$OUTPUT" >> titles.txt
         fi
     fi
 done < output	#end loop
@@ -191,7 +195,7 @@ if [ "$USER" == root ]; then
         F=$(sed 's/ #.*//' <<< "$SORTED")
         echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
     done <<< "$SORTED_POSTS"
-
+    #mail to
     if [ -z "$(ls -A errors)" ]; then
         echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
     else
