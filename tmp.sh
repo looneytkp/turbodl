@@ -1,6 +1,5 @@
 #!/bin/env bash
 set -ex
-rm ~/.tmp/'movie list.txt' && touch ~/.tmp/'movie list.txt'
 COUNT=1; COUNT1=0
 echo '---script starts above this---' > ~/.tmp/'movie list.txt'
 while true; do
