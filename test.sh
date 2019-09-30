@@ -198,8 +198,10 @@ if [ "$USER" == root ]; then
     #mail to
     if [ -z "$(ls -A errors)" ]; then
         #echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
+        echo
     else
         #echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
+        echo
     fi
     #echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
     echo $PWD
