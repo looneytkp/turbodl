@@ -202,4 +202,5 @@ if [ "$USER" == root ]; then
         #echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
     fi
     #echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
+    echo $PWD
 fi
