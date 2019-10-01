@@ -23,31 +23,35 @@ DL_MOVIEDATA(){
 
 GET_UPDATE(){
     #function for when a post exists on turbodl
-	if grep -qE "$OUTPUT2" 'movie list.txt'; then
+    if grep -qE "$OUTPUT2" 'movie list.txt'; then
         OUTPUT3=$(sed "s/ /%20/g" <<< "$OUTPUT2")
         LINKS3=$(curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
-        LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
-        MD5_1=$(md5sum <<< "$LINKS3")
-        MD5_2=$(md5sum <<< "$LINKS4")
-        if [ "$MD5_1" == "$MD5_2" ]; then
-            echo "$OUTPUT   --> already posted" >> 'today.txt'
-            CONTINUE='YES'; export CONTINUE
-        else
-            TITLE2="$TITLE [UPDATED]"
-            echo "$TITLE2" >> 'today.txt'
+        if grep -q 'http' <<< "$LINKS3"; then
+            LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
+            MD5_1=$(md5sum <<< "$LINKS3")
+            MD5_2=$(md5sum <<< "$LINKS4")
+            if [ "$MD5_1" == "$MD5_2" ]; then
+                echo "$OUTPUT   --> already posted" >> 'today.txt'
+                CONTINUE='YES'; export CONTINUE
+            else
+                TITLE2="$TITLE [UPDATED]"
+                echo "$TITLE2" >> 'today.txt'
+            fi
         fi
     elif grep -q "$A" 'movie list.txt'; then
         AA=$(sed "s/ /%20/g" <<< "$A")
         LINKS3=$(curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$AA&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
-        LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
-        MD5_1=$(md5sum <<< "$LINKS3")
-        MD5_2=$(md5sum <<< "$LINKS4")
-        if [ "$MD5_1" == "$MD5_2" ]; then
-            echo "$OUTPUT   --> already posted" >> 'today.txt'
-            CONTINUE='YES'; export CONTINUE
-        else
-            TITLE2="$TITLE [UPDATED]"
-            echo "$TITLE2" >> 'today.txt'
+        if grep -q 'http' <<< "$LINKS3"; then
+            LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
+            MD5_1=$(md5sum <<< "$LINKS3")
+            MD5_2=$(md5sum <<< "$LINKS4")
+            if [ "$MD5_1" == "$MD5_2" ]; then
+                echo "$OUTPUT   --> already posted" >> 'today.txt'
+                CONTINUE='YES'; export CONTINUE
+            else
+                TITLE2="$TITLE [UPDATED]"
+                echo "$TITLE2" >> 'today.txt'
+            fi
         fi
     fi
 }
@@ -57,7 +61,7 @@ while true; do
     curl -s -o file.x -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100"
     if grep -q 'rest_post_invalid_page_number' file.x; then break; fi
     while [ $COUNT1 -lt 100 ]; do
-		title=$(cat file.x | jq -r ".[$COUNT1].title.rendered" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
+        title=$(cat file.x | jq -r ".[$COUNT1].title.rendered" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
         if [ "$title" == null ]; then break; fi
         grep -q "$title" 'movie list.txt' || echo "$title" >> 'movie list.txt'
         COUNT1=$((COUNT1+1))
@@ -174,7 +178,9 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
             echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
             continue
         else
-            sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
+            if ! grep -qE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then
+                sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
+            fi
             if [ "$TITLE2" ]; then
                 echo "$TITLE2" >> 'today.txt'
                 echo "$TITLE2 #$OUTPUT" >> 'titles.txt'
@@ -204,5 +210,4 @@ if [ "$USER" == root ]; then
         echo
     fi
     #echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
-    echo $PWD
 fi
