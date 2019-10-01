@@ -74,7 +74,7 @@ grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//; s/.*title='//; s/<
 grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2
 echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
 
-if [ "$USER" == root ]; then
+if [ "$USER" != persie ]; then
     exec 3>&1 4>&2
     trap 'exec 2>&4 1>&3' 0 1 2 3
     exec 1>logs.txt 2>&1
@@ -193,7 +193,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
     fi
 done < output	#end loop
 
-if [ "$USER" == root ]; then
+if [ "$USER" != persie ]; then
     echo -e "\\n---sorting randomly---"
     SORTED_POSTS=$(cat titles.txt | sort -Rr)
     while IFS= read -r SORTED; do
