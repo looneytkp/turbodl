@@ -11,7 +11,7 @@ DL_MOVIEDATA(){
     #function for when both OMDB and tracktv API fail to get movie data
     unset IMG2 CAST2 GENRE2 LINKS2
     if [ ! -e moviedata ]; then
-        curl -s -o moviedata $(grep "$OUTPUT" output2 | grep -o http.*html)		#grab movie page from lightdl
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -o moviedata $(grep "$OUTPUT" output2 | grep -o http.*html)		#grab movie page from lightdl
     fi
     IMG2=$(grep -o ^"<a href.*media-amazon.*jpg" moviedata | sed 's/jpg".*/jpg"/')
     CAST2=$(grep -o ^"Stars.*<" moviedata | sed -e "s/Stars/Cast/" -e "s/<//")
@@ -25,7 +25,7 @@ GET_UPDATE(){
     #function for when a post exists on turbodl
     if grep -qE "$OUTPUT2" 'movie list.txt'; then
         OUTPUT3=$(sed "s/ /%20/g" <<< "$OUTPUT2")
-        LINKS3=$(curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
+        LINKS3=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
             MD5_1=$(md5sum <<< "$LINKS3")
@@ -40,7 +40,7 @@ GET_UPDATE(){
         fi
     elif grep -q "$A" 'movie list.txt'; then
         AA=$(sed "s/ /%20/g" <<< "$A")
-        LINKS3=$(curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$AA&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
+        LINKS3=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$AA&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
             MD5_1=$(md5sum <<< "$LINKS3")
@@ -58,7 +58,7 @@ GET_UPDATE(){
 
 COUNT=1; COUNT1=0
 while true; do
-    curl -s -o file.x -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100"
+    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -o file.x -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100"
     if grep -q 'rest_post_invalid_page_number' file.x; then break; fi
     while [ $COUNT1 -lt 100 ]; do
         title=$(cat file.x | jq -r ".[$COUNT1].title.rendered" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
@@ -69,7 +69,7 @@ while true; do
     break #COUNT1=0; COUNT=$((COUNT+1))
 done
 
-curl -s -o data "https://lightdlmovies.blogspot.com/search/label/MOVIES"
+curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -o data "https://lightdlmovies.blogspot.com/search/label/MOVIES"
 grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//" > output
 grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2
 echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
@@ -91,13 +91,13 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
     OMDB_NAME=$(sed "s/ /%20/g" <<< "$OUTPUT2")		#format current title by replacing spaces with %20 to work with API's
 
     if grep -qo '[0-9][0-9][0-9][0-9]' <<< $YEAR; then
-        curl -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?t=$OMDB_NAME&y=$YEAR&type=movie&plot=short&apikey=7759dbc7" | jq "." > "info" 2> /dev/null	#OMDB API to get details of movie
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?t=$OMDB_NAME&y=$YEAR&type=movie&plot=short&apikey=7759dbc7" | jq "." > "info" 2> /dev/null	#OMDB API to get details of movie
     else
-        curl -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?t=$OMDB_NAME&type=movie&plot=short&apikey=7759dbc7" | jq "." > "info" 2> /dev/null
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?t=$OMDB_NAME&type=movie&plot=short&apikey=7759dbc7" | jq "." > "info" 2> /dev/null
     fi
 
     if grep -qE '("Response": "False"|"Error": "Movie not found!")' info; then
-        curl -s --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/movie?query=$OMDB_NAME" | jq "." > 'info'  2> /dev/null		#trakttv API, runs when OMDB API fails to get details because of improper title format
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/movie?query=$OMDB_NAME" | jq "." > 'info'  2> /dev/null		#trakttv API, runs when OMDB API fails to get details because of improper title format
         C=0
         while true; do
             T=$(cat 'info' | jq -r ".[$C].movie.title")
@@ -105,7 +105,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
             Y=$(cat 'info' | jq -r ".[$C].movie.year")
             if [ "$Y" == $YEAR ]; then
                 IMDB_ID=$(cat 'info' | jq -r ".[$C].movie.ids.imdb")
-                curl -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" | jq "." > "info" 2> /dev/null	#OMDB API to get movie details with imdb ID when finding with name fails
+                curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" | jq "." > "info" 2> /dev/null	#OMDB API to get movie details with imdb ID when finding with name fails
                 if grep -qE '("Response": "False"|"Error": "Movie not found!")' info; then
                     T="null"
                     break
@@ -139,7 +139,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
     PLOT=$(grep "Plot" 'info' | sed -e 's/.*: "//' -e 's/",//')
     CAST=$(grep "Actors" 'info' | sed -e 's/.*: "//' -e 's/",//')
     if grep -q 'N/A' <<< "$CAST"; then DL_MOVIEDATA && CAST=$(sed 's/Cast: //' <<< "$CAST2"); fi	#alternative to get cast if cast is N/A
-    LINKS=$(curl -s $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")
+    LINKS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")
     if grep -qiE "(h.*d.*cm).*mkv" <<< "$LINKS"; then      #check for CAM links
         echo "$OUTPUT   --> CAM" >> 'today.txt'
         continue
@@ -162,7 +162,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
         fi
         IMG=$(grep "Poster" 'info' | sed -e 's/.*: "//' -e 's/",//')
         if grep -q 'N/A' <<< "$IMG"; then DL_MOVIEDATA && IMG="$IMG2"; fi	#alternative to get image URL if image URL is N/A
-        curl -s "$IMG" -o movies/"$OUTPUT".jpg		#download img
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$IMG" -o movies/"$OUTPUT".jpg		#download img
 
         #check img dimension size
         W=$(identify -format "%w" movies/"$OUTPUT".jpg)> /dev/null
