@@ -74,11 +74,11 @@ grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//; s/.*title='//; s/<
 grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2
 echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
 
-#if [ "$USER" == root ]; then
-#    exec 3>&1 4>&2
-#    trap 'exec 2>&4 1>&3' 0 1 2 3
-#    exec 1>logs.txt 2>&1
-#fi
+if [ "$USER" == root ]; then
+    exec 3>&1 4>&2
+    trap 'exec 2>&4 1>&3' 0 1 2 3
+    exec 1>logs.txt 2>&1
+fi
 set -ex
 
 while IFS= read -r OUTPUT; do	#loop through movie titles in output file
@@ -179,7 +179,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
             continue
         else
             if ! grep -qE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then
-                sed -i "1s/^/$TITLE\\n/" 'movie list.txt'
+                sed -i "1s/^/$TITLE | $OUTPUT2\\n/" 'movie list.txt'
             fi
             if [ "$TITLE2" ]; then
                 echo "$TITLE2" >> 'today.txt'
@@ -199,15 +199,13 @@ if [ "$USER" == root ]; then
     while IFS= read -r SORTED; do
         E=$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')
         F=$(sed 's/ #.*//' <<< "$SORTED")
-        #echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
+        echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
     done <<< "$SORTED_POSTS"
     #mail to
     if [ -z "$(ls -A errors)" ]; then
-        #echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
-        echo
+        echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
     else
-        #echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
-        echo
+        echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
     fi
-    #echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
+    echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
 fi
