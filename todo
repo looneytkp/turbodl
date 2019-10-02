@@ -19,7 +19,7 @@
 ##tags with years
 ##fix wrong movie years, example aladdin 1992 and shaft 2000
 #add plot not available
--delete or update posts with wp api
+#delete or update posts with wp api
 -find better pattern to find movie and rating
 
 
