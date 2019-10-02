@@ -35,6 +35,7 @@ GET_UPDATE(){
                 CONTINUE='YES'; export CONTINUE
             else
                 TITLE2="$TITLE [UPDATED]"
+                export TITLE2
                 echo "$TITLE2" >> 'today.txt'
             fi
         fi
@@ -50,6 +51,7 @@ GET_UPDATE(){
                 CONTINUE='YES'; export CONTINUE
             else
                 TITLE2="$TITLE [UPDATED]"
+                export TITLE2
                 echo "$TITLE2" >> 'today.txt'
             fi
         fi
@@ -140,7 +142,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
     CAST=$(grep "Actors" 'info' | sed -e 's/.*: "//' -e 's/",//')
     if grep -q 'N/A' <<< "$CAST"; then DL_MOVIEDATA && CAST=$(sed 's/Cast: //' <<< "$CAST2"); fi	#alternative to get cast if cast is N/A
     LINKS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")
-    if grep -qiE "(h.*d.*cm).*mkv" <<< "$LINKS"; then      #check for CAM links
+    if grep -qiE "(h.*d.*cm|HDCAM).*mkv" <<< "$LINKS"; then      #check for CAM links
         echo "$OUTPUT   --> CAM" >> 'today.txt'
         continue
     fi
@@ -182,8 +184,8 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
                 sed -i "1s/^/$TITLE | $OUTPUT2\\n/" 'movie list.txt'
             fi
             if [ "$TITLE2" ]; then
-                echo "$TITLE2" >> 'today.txt'
                 echo "$TITLE2 #$OUTPUT" >> 'titles.txt'
+                unset "$TITLE2"
             else
                 echo "$TITLE" >> 'today.txt'
                 echo "$TITLE #$OUTPUT" >> titles.txt
