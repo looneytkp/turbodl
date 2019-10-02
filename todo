@@ -6,20 +6,21 @@
 #fix movie not found feedback
 #comment on code
 #sync movie list to dropbox
--setup daemon or cronjob
+#setup daemon or cronjob
 #fix links not being processed due to misnomer
 #check for links before processing
 #discard movies with rating below 5.5
 ##run checks with posts on website
--check img dimension if downloaded from lightdl
+#check img dimension if downloaded from lightdl
 #send movie to errors directory if genre is N/A
 #skip movies with documentary genre
--seperate CAM links
+#seperate CAM links
 #format error mail correctly
 ##tags with years
 ##fix wrong movie years, example aladdin 1992 and shaft 2000
 #add plot not available
-
+-delete or update posts with wp api
+-find better pattern to find movie and rating
 
 
 
