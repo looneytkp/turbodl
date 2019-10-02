@@ -25,34 +25,38 @@ GET_UPDATE(){
     #function for when a post exists on turbodl
     if grep -qE "$OUTPUT2" 'movie list.txt'; then
         OUTPUT3=$(sed "s/ /%20/g" <<< "$OUTPUT2")
-        LINKS3=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3&per_page=1" > file.x
+        LINKS3=$(cat file.x | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
+            POST_ID=$(cat file.x |jq '.[].id')
             MD5_1=$(md5sum <<< "$LINKS3")
             MD5_2=$(md5sum <<< "$LINKS4")
             if [ "$MD5_1" == "$MD5_2" ]; then
                 echo "$OUTPUT   --> already posted" >> 'today.txt'
                 CONTINUE='YES'; export CONTINUE
             else
-                TITLE2="$TITLE [UPDATED]"
-                export TITLE2
-                echo "$TITLE2" >> 'today.txt'
+                curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$POST_ID"
+                echo "deleted $OUTPUT2"
+                DEL='YES'; export DEL
             fi
         fi
     elif grep -q "$A" 'movie list.txt'; then
         AA=$(sed "s/ /%20/g" <<< "$A")
-        LINKS3=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$AA&per_page=1" | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$AA&per_page=1" > file.x
+        LINKS3=$(cat file.x | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
+            POST_ID=$(cat file.x |jq '.[].id')
             MD5_1=$(md5sum <<< "$LINKS3")
             MD5_2=$(md5sum <<< "$LINKS4")
             if [ "$MD5_1" == "$MD5_2" ]; then
                 echo "$OUTPUT   --> already posted" >> 'today.txt'
                 CONTINUE='YES'; export CONTINUE
             else
-                TITLE2="$TITLE [UPDATED]"
-                export TITLE2
-                echo "$TITLE2" >> 'today.txt'
+                curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$POST_ID"
+                echo "deleted $A"
+                DEL='YES'; export DEL
             fi
         fi
     fi
@@ -183,26 +187,28 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
             if ! grep -qE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then
                 sed -i "1s/^/$TITLE | $OUTPUT2\\n/" 'movie list.txt'
             fi
-            if [ "$TITLE2" ]; then
-                echo "$TITLE2 #$OUTPUT" >> 'titles.txt'
-                unset "$TITLE2"
+            if [ "$DEL" == YES ]; then
+                echo "$TITLE  --> updated" 'today.txt'
             else
                 echo "$TITLE" >> 'today.txt'
-                echo "$TITLE #$OUTPUT" >> titles.txt
             fi
+            unset DEL
+            echo "$TITLE #$OUTPUT" >> titles.txt
             echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
         fi
     fi
 done < output	#end loop
 
 if [ "$USER" != persie ]; then
-    echo -e "\\n---sorting randomly---"
-    SORTED_POSTS=$(cat titles.txt | sort -Rr)
-    while IFS= read -r SORTED; do
-        E=$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')
-        F=$(sed 's/ #.*//' <<< "$SORTED")
-        echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
-    done <<< "$SORTED_POSTS"
+    if [ -e titles.txt ]; then
+        echo -e "\\n---sorting randomly---"
+        SORTED_POSTS=$(cat titles.txt | sort -Rr)
+        while IFS= read -r SORTED; do
+            E=$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')
+            F=$(sed 's/ #.*//' <<< "$SORTED")
+            echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
+        done <<< "$SORTED_POSTS"
+    fi
     #mail to
     if [ -z "$(ls -A errors)" ]; then
         echo | mutt -s 'turbodlbot' -i 'today.txt' -- persie@turbodl.xyz 'info@turbodl.xyz'
