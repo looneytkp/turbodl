@@ -29,7 +29,8 @@ GET_UPDATE(){
         LINKS3=$(cat file.x | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
-            POST_ID=$(cat file.x |jq '.[].id')
+            POST_ID=$(cat file.x | jq '.[].id')
+            MEDIA_ID=$(cat file.x | jq '.[].featured media')
             MD5_1=$(md5sum <<< "$LINKS3")
             MD5_2=$(md5sum <<< "$LINKS4")
             if [ "$MD5_1" == "$MD5_2" ]; then
@@ -37,6 +38,7 @@ GET_UPDATE(){
                 CONTINUE='YES'; export CONTINUE
             else
                 curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$POST_ID"
+                curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$MEDIA_ID"
                 echo "deleted $OUTPUT2"
                 DEL='YES'; export DEL
             fi
@@ -48,6 +50,7 @@ GET_UPDATE(){
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
             POST_ID=$(cat file.x |jq '.[].id')
+            MEDIA_ID=$(cat file.x | jq '.[].featured media')
             MD5_1=$(md5sum <<< "$LINKS3")
             MD5_2=$(md5sum <<< "$LINKS4")
             if [ "$MD5_1" == "$MD5_2" ]; then
@@ -55,6 +58,7 @@ GET_UPDATE(){
                 CONTINUE='YES'; export CONTINUE
             else
                 curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$POST_ID"
+                curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$MEDIA_ID"
                 echo "deleted $A"
                 DEL='YES'; export DEL
             fi
@@ -188,7 +192,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
                 sed -i "1s/^/$TITLE | $OUTPUT2\\n/" 'movie list.txt'
             fi
             if [ "$DEL" == YES ]; then
-                echo "$TITLE  --> updated" 'today.txt'
+                echo "$TITLE  --> updated" >> 'today.txt'
             else
                 echo "$TITLE" >> 'today.txt'
             fi
@@ -217,3 +221,4 @@ if [ "$USER" != persie ]; then
     fi
     echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
 fi
+
