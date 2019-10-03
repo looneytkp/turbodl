@@ -37,8 +37,10 @@ GET_UPDATE(){
                 echo "$OUTPUT   --> already posted" >> 'today.txt'
                 CONTINUE='YES'; export CONTINUE
             else
-                curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$POST_ID"
-                curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$MEDIA_ID"
+                if [ "$USER" != persie ]; then
+                    curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$POST_ID"
+                    curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$MEDIA_ID?force=true"
+                fi
                 echo "deleted $OUTPUT2"
                 DEL='YES'; export DEL
             fi
@@ -57,8 +59,10 @@ GET_UPDATE(){
                 echo "$OUTPUT   --> already posted" >> 'today.txt'
                 CONTINUE='YES'; export CONTINUE
             else
-                curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$POST_ID"
-                curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$MEDIA_ID"
+                if [ "$USER" != persie ]; then
+                    curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$POST_ID"
+                    curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$MEDIA_ID?force=true"
+                fi
                 echo "deleted $A"
                 DEL='YES'; export DEL
             fi
@@ -95,9 +99,9 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
     echo -e "\\n$OUTPUT\\n------------------------------"
     if [ -e moviedata ]; then rm moviedata; fi
     OUTPUT=$(grep "$OUTPUT" output | sed -e 's/  $//; s/ $//')
-    YEAR=$(grep -oE '[0-9][0-9][0-9][0-9]$' <<< "$OUTPUT" || echo 'null')
+    YEAR=$(grep -oE "([0-9][0-9][0-9][0-9]$| [0-9][0-9][0-9][0-9] )" <<< "$OUTPUT" | sed 's/ //g' || echo 'null')
     if grep -q 'null' <<< "$YEAR"; then echo "$OUTPUT   --> year not found" >> 'today.txt'; continue; fi
-    OUTPUT2=$(sed 's/[ -.][0-9][0-9][0-9][0-9]$//' <<< "$OUTPUT")
+    OUTPUT2=$(sed 's/[ -.][0-9][0-9][0-9][0-9].*//' <<< "$OUTPUT")
     OMDB_NAME=$(sed "s/ /%20/g" <<< "$OUTPUT2")		#format current title by replacing spaces with %20 to work with API's
 
     if grep -qo '[0-9][0-9][0-9][0-9]' <<< $YEAR; then
@@ -167,7 +171,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
         echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
         continue
     else
-        if grep -qE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then
+        if grep -oE "($TITLE)" 'movie list.txt'; then
             GET_UPDATE; if [ "$CONTINUE" ]; then unset CONTINUE; continue; fi
         fi
         IMG=$(grep "Poster" 'info' | sed -e 's/.*: "//' -e 's/",//')
