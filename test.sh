@@ -30,7 +30,7 @@ GET_UPDATE(){
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
             POST_ID=$(cat file.x | jq '.[].id')
-            MEDIA_ID=$(cat file.x | jq '.[].featured media')
+            MEDIA_ID=$(cat file.x | jq '.[].featured_media')
             MD5_1=$(md5sum <<< "$LINKS3")
             MD5_2=$(md5sum <<< "$LINKS4")
             if [ "$MD5_1" == "$MD5_2" ]; then
@@ -50,7 +50,7 @@ GET_UPDATE(){
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
             POST_ID=$(cat file.x |jq '.[].id')
-            MEDIA_ID=$(cat file.x | jq '.[].featured media')
+            MEDIA_ID=$(cat file.x | jq '.[].featured_media')
             MD5_1=$(md5sum <<< "$LINKS3")
             MD5_2=$(md5sum <<< "$LINKS4")
             if [ "$MD5_1" == "$MD5_2" ]; then
@@ -219,5 +219,5 @@ if [ "$USER" != persie ]; then
     else
         echo | mutt -s 'turbodlbot' -i 'today.txt' -a errors/* -- persie@turbodl.xyz 'info@turbodl.xyz'
     fi
-    echo | mutt -s 'turbodlbot log' -i titles.txt -a logs.txt 'movie list.txt' -- persie@turbodl.xyz
+    echo | mutt -s 'turbodlbot logs' -i logs.txt 'movie list.txt' -- persie@turbodl.xyz
 fi
