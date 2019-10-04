@@ -197,10 +197,10 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
             fi
             if [ "$DEL" == YES ]; then
                 echo "$TITLE  --> updated" >> 'today.txt'
+                unset DEL
             else
                 echo "$TITLE" >> 'today.txt'
             fi
-            unset DEL
             echo "$TITLE #$OUTPUT" >> titles.txt
             echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
         fi
