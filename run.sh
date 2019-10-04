@@ -25,7 +25,7 @@ GET_UPDATE(){
     #function for when a post exists on turbodl
     if grep -qE "$OUTPUT2" 'movie list.txt'; then
         OUTPUT3=$(sed "s/ /%20/g" <<< "$OUTPUT2")
-        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3&per_page=1" > file.x
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3%20$YEAR&per_page=1" > file.x
         LINKS3=$(cat file.x | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
@@ -47,7 +47,7 @@ GET_UPDATE(){
         fi
     elif grep -q "$A" 'movie list.txt'; then
         AA=$(sed "s/ /%20/g" <<< "$A")
-        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$AA&per_page=1" > file.x
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$AA%20$YEAR&per_page=1" > file.x
         LINKS3=$(cat file.x | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
@@ -171,7 +171,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
         echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
         continue
     else
-        if grep -oE "($TITLE)" 'movie list.txt'; then
+        if grep -owE "($A|$OUTPUT2|$TITLE)" 'movie list.txt'; then
             GET_UPDATE; if [ "$CONTINUE" ]; then unset CONTINUE; continue; fi
         fi
         IMG=$(grep "Poster" 'info' | sed -e 's/.*: "//' -e 's/",//')
@@ -201,7 +201,7 @@ while IFS= read -r OUTPUT; do	#loop through movie titles in output file
                 echo "$TITLE" >> 'today.txt'
             fi
             unset DEL
-            echo "$TITLE #$OUTPUT" >> titles.txt
+            echo "$TITLE # $OUTPUT" >> titles.txt
             echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > movies/"$OUTPUT"
         fi
     fi
