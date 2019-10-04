@@ -1,0 +1,97 @@
+#!/bin/env bash
+DIR=~/.turbodl
+if [ -d "$DIR" ]; then
+    cd "$DIR"; rm movies/* errors/* today.txt output* info file.x data titles.txt 2> /dev/null
+else
+    mkdir -p "$DIR"/movies "$DIR"/errors; cd "$DIR"
+fi
+
+#COUNT=1; COUNT1=0
+#while true; do
+#    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -o file.x -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100"
+#    if grep -q 'rest_post_invalid_page_number' file.x; then break; fi
+#    while [ $COUNT1 -lt 100 ]; do
+#        title=$(cat file.x | jq -r ".[$COUNT1].title.rendered" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
+#        if [ "$title" == null ]; then break; fi
+#        grep -q "$title" 'movie list.txt' || echo "$title" >> 'movie list.txt'
+#        COUNT1=$((COUNT1+1))
+#    done
+#    break #COUNT1=0; COUNT=$((COUNT+1))
+#done
+
+curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -o data "https://lightdlmovies.blogspot.com/search/label/MOVIES"
+grep ^'<a href=.*html.*title=.*</a>' data | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//" > output
+grep ^'<a href=.*html.*title=.*</a>' data | sed "s/'>.*//" > output2
+echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
+
+if [ "$USER" != persie ]; then
+    exec 3>&1 4>&2
+    trap 'exec 2>&4 1>&3' 0 1 2 3
+    exec 1>logs.txt 2>&1
+fi
+set -ex
+
+while IFS= read -r OUTPUT; do
+    echo -e "\\n$OUTPUT\\n-----------------------"
+#    if [ -e moviedata ]; then rm moviedata; fi
+    NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g; s/[ -.][0-9][0-9][0-9][0-9].*//' <<< "$OUTPUT")
+    YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || echo 'null')
+    if grep -q 'null' <<< "$YEAR"; then echo "$OUTPUT   --> year not found" >> 'today.txt'; continue; fi
+    TMDB_NAME=$(sed "s/ /%20/g" <<< "$NAME")
+
+    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/movie?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$TMDB_NAME&page=1&year=$YEAR" | jq "." > info 2> /dev/null
+    TOT_RESULTS=$(jq '.total_results' < info); A=0
+    while [ "$A" -lt "$TOT_RESULTS" ]; do
+        REL_DATE=$(jq -r ".results[$A].release_date" < info)
+        if grep -q "$YEAR" <<< "$REL_DATE"; then
+            TITLE=$(jq -r ".results[$A] | .title" < info); TITLE="$TITLE ($YEAR)"
+            POSTER=$(jq -r ".results[$A] | .poster_path" < info); POSTER="https://image.tmdb.org/t/p/w500$POSTER"
+            TMDB_ID=$(jq -r ".results[$A] | .id" < info)
+            OVERVIEW=$(jq -r ".results[$A] | .overview" < info)
+            break
+        else
+            A=$((A+1))
+        fi
+    done
+
+    LINKS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" output2 | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")
+    if grep -qiE "(h.*d.*cm|HDCAM).*mkv" <<< "$LINKS"; then continue; fi
+
+    if grep -ow "$TITLE" list.txt; then
+        echo "$TITLE"
+        continue
+    fi
+
+    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=movie" | jq '.' > info 2> /dev/null
+    IMDB_ID=$(jq -r '.[].movie.ids.imdb' < info)
+
+    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" | jq "." > info
+    PLOT=$(jq -r '.Plot' < info); CAST=$(jq -r '.Actors' < info)
+
+    GENRE=$(jq -r '.Genre' < info)
+    if grep -qi 'documentary' <<< "$GENRE"; then continue; fi
+    RATING=$(jq -r '.imdbRating' < info)
+    if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
+        echo "$OUTPUT   -->   rating/genre not available" >> 'today.txt'
+        echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+        continue
+    elif [ $(sed 's/\.//' <<< "$RATING") -lt 55 ]; then
+        continue
+    fi
+
+    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > movies/"$OUTPUT"
+    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o movies/"$OUTPUT".jpg
+
+
+
+
+
+
+
+
+
+
+
+
+#break
+done < output
