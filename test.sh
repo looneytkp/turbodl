@@ -23,10 +23,10 @@ DL_MOVIEDATA(){
 
 GET_UPDATE(){
     #function for when a post exists on turbodl
-    if grep -qE "$OUTPUT2" 'movie list.txt'; then
-        OUTPUT3=$(sed "s/ /%20/g" <<< "$OUTPUT2")
-        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3%20$YEAR&per_page=1" > file.x
-        LINKS3=$(cat file.x | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
+    if grep -q "$A" 'movie list.txt'; then
+        AA=$(sed "s/ /%20/g" <<< "$A")
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$AA%20$YEAR&per_page=1" > file.x
+        LINKS3=$(cat file.x | jq -r '.[].content.rendered' | grep -o '<a href.*a>')
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
             POST_ID=$(cat file.x | jq '.[].id')
@@ -45,10 +45,10 @@ GET_UPDATE(){
                 DEL='YES'; export DEL
             fi
         fi
-    elif grep -q "$A" 'movie list.txt'; then
-        AA=$(sed "s/ /%20/g" <<< "$A")
-        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$AA%20$YEAR&per_page=1" > file.x
-        LINKS3=$(cat file.x | jq -r '.[].content.rendered' | grep -o '<a href.*' | sed 's/<br \/>//g')
+    elif grep -qE "$OUTPUT2" 'movie list.txt'; then
+        OUTPUT3=$(sed "s/ /%20/g" <<< "$OUTPUT2")
+        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$OUTPUT3%20$YEAR&per_page=1" > file.x
+        LINKS3=$(cat file.x | jq -r '.[].content.rendered' | grep -o '<a href.*a>')
         if grep -q 'http' <<< "$LINKS3"; then
             LINKS4=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
             POST_ID=$(cat file.x |jq '.[].id')
