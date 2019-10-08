@@ -125,9 +125,7 @@ if [ "$USER" != persie ]; then
         echo -e "\\n---sorting randomly---"
         SORTED_POSTS=$(sort -Rr < titles.txt)
         while IFS= read -r SORTED; do
-            E=$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')
-            F=$(sed 's/ #.*//' <<< "$SORTED")
-            echo | mutt -s "$F" -i movies/"$E" -a movies/"$E".jpg -- Ud37asAUd8a7@turbodl.xyz
+            echo | mutt -s "$(sed 's/ #.*//' <<< "$SORTED")" -i movies/"$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')" -a movies/"$(sed 's/ #.*//' <<< "$SORTED")".jpg -- Ud37asAUd8a7@turbodl.xyz
         done <<< "$SORTED_POSTS"
     fi
 
