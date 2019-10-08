@@ -6,6 +6,7 @@ else
     mkdir -p "$DIR"/movies "$DIR"/errors; cd "$DIR"
 fi
 
+if [ "$USER" != persie ]; then
 COUNT=1; COUNT1=0
 WP=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100" || exit)
 while [ $COUNT1 -lt 100 ]; do
@@ -13,6 +14,7 @@ while [ $COUNT1 -lt 100 ]; do
     grep -q "$title" list.txt || echo "$title" >> list.txt
     COUNT1=$((COUNT1+1))
 done
+fi
 
 URL=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "https://lightdlmovies.blogspot.com/search/label/MOVIES")
 output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
@@ -26,7 +28,8 @@ if [ "$USER" != persie ]; then
 fi
 set -ex
 
-while IFS= read -r OUTPUT; do
+while IFS= read -r "OUTPUT"; do
+#if [ "$OUTPUT" != '' ]; then continue; fi
     echo -e "\\n$OUTPUT\\n-----------------------"
     LINKS="$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep -o "<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")"
     grep -qiE "(hd.*cm|HDCAM).*mkv" <<< "$LINKS" && continue
@@ -81,10 +84,10 @@ while IFS= read -r OUTPUT; do
     fi
 
     if grep -owF "$TITLE" list.txt; then
-        WP_RESULTS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=5" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
+        WP_RESULTS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=5")
 
         while [[ "$A" != 6 ]]; do
-            if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS")"; then
+            if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")"; then
                 WP_LINKS=$(jq -r ".[$A].content.rendered" <<< "$WP_RESULTS" | grep -o '<a href.*</a>' || true)
                 if grep -q 'http' <<< "$WP_LINKS"; then
                     LINKS2=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
