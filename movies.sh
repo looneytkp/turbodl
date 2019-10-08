@@ -7,16 +7,17 @@ else
 fi
 
 COUNT=1; COUNT1=0
-WP=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100")
+WP=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100" || exit)
 while [ $COUNT1 -lt 100 ]; do
-    title=$(jq -r ".[$COUNT1].title.rendered" <<< "$WP"| sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
+    title=$(jq -r ".[$COUNT1].title.rendered" <<< "$WP" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
+    grep -q "$title" list.txt || echo "$title" >> list.txt
     COUNT1=$((COUNT1+1))
 done
-
+set -x
 URL=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "https://lightdlmovies.blogspot.com/search/label/MOVIES")
 output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
 output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
-echo -e ""$(date)"\\n--------------------------------" > 'today.txt'
+echo -e "$(date)\\n--------------------------------" > 'today.txt'
 
 if [ "$USER" != persie ]; then
     exec 3>&1 4>&2
@@ -27,7 +28,7 @@ set -ex
 
 while IFS= read -r OUTPUT; do
     echo -e "\\n$OUTPUT\\n-----------------------"
-    LINKS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep ^"<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")
+    LINKS="$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep -o "<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")"
     grep -qiE "(hd.*cm|HDCAM).*mkv" <<< "$LINKS" && continue
 
     NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g; s/[ -.][0-9][0-9][0-9][0-9].*//' <<< "$OUTPUT")
@@ -80,7 +81,7 @@ while IFS= read -r OUTPUT; do
     fi
 
     if grep -owF "$TITLE" list.txt; then
-        WP_RESULTS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=5")
+        WP_RESULTS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=5" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
 
         while [[ "$A" != 6 ]]; do
             if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS")"; then
@@ -94,7 +95,7 @@ while IFS= read -r OUTPUT; do
                             curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$(jq '.[].id' <<< "$WP_RESULTS")"
                             curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$((POST_ID+1))?force=true"
                         fi
-                        echo "deleted $OUTPUT2"
+                        echo "deleted $OUTPUT"
                     fi
                 else
                     sed -i "/$TITLE/d" list.txt
@@ -108,7 +109,7 @@ while IFS= read -r OUTPUT; do
 
     fi
 
-    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o movies/"$TITLE".jpg
+    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o movies/"$TITLE".jpg || exit
     if [ $(identify -format "%w" movies/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" movies/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" movies/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" movies/"$TITLE".jpg)> /dev/null -lt 700 ]; then
         echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
         echo "$OUTPUT   -->   invalid image height/weight dimension" >> 'today.txt'
