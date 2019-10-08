@@ -13,7 +13,7 @@ while [ $COUNT1 -lt 100 ]; do
     grep -q "$title" list.txt || echo "$title" >> list.txt
     COUNT1=$((COUNT1+1))
 done
-set -x
+
 URL=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "https://lightdlmovies.blogspot.com/search/label/MOVIES")
 output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
 output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
