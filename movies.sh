@@ -63,7 +63,7 @@ while IFS= read -r "OUTPUT"; do
     A=0
 
     IMDB_ID=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=movie" | jq -r '.[].movie.ids.imdb')
-    ! grep 'tt' <<< "$IMDB_ID" && TODAY+=("$OUTPUT   --> year not found") && continue
+    ! grep -q 'tt' <<< "$IMDB_ID" && TODAY+=("$OUTPUT   --> year not found") && continue
 
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7")
     TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
@@ -95,8 +95,8 @@ while IFS= read -r "OUTPUT"; do
                         continue 2
                     else
                         if [ "$USER" != persie ]; then
-                            curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$(jq '.[].id' <<< "$WP_RESULTS")"
-                            curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$((POST_ID+1))?force=true"
+                            curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")"
+                            curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true"
                         fi
                         echo "deleted $OUTPUT"
                     fi
@@ -109,7 +109,6 @@ while IFS= read -r "OUTPUT"; do
                 if [ $A == 6 ]; then echo "$OUTPUT   -->   conflicting error" >> today.txt && continue 2; fi
             fi
         done
-
     fi
 
     curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o movies/"$TITLE".jpg || exit
