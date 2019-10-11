@@ -16,10 +16,15 @@ while [ $COUNT1 -lt 100 ]; do
 done
 fi
 
+if [ "$USER" != persie ]; then
+    cat ~/turbodl/whitelist > ~/.turbodl/whitelist
+    cat ~/turbodl/blacklist > ~/.turbodl/blacklist
+fi
+
 URL=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "https://lightdlmovies.blogspot.com/search/label/MOVIES")
 output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
 output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
-echo -e "$(date)\\n--------------------------------" > 'today.txt'
+#echo -e "$(date)\\n--------------------------------" > 'today.txt'
 
 if [ "$USER" != persie ]; then
     exec 3>&1 4>&2
@@ -29,8 +34,8 @@ fi
 set -ex
 
 while IFS= read -r "OUTPUT"; do
-#if [ "$OUTPUT" != '' ]; then continue; fi
     echo -e "\\n$OUTPUT\\n-----------------------"
+    if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
     LINKS="$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep -o "<span style=\"font-family.*http.*a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")"
     grep -qiE "(hd.*cm|HDCAM).*mkv" <<< "$LINKS" && continue
 
@@ -72,16 +77,25 @@ while IFS= read -r "OUTPUT"; do
     GENRE=$(jq -r '.Genre' <<< "$OMDB_API"); if grep -qi 'documentary' <<< "$GENRE"; then continue; fi
     RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
     if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
-        echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
-        curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o errors/"$TITLE".jpg
-        if [ $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -lt 720 ]; then
+        if ! grep -q "$OUTPUT" whitelist; then
+            echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+            curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o errors/"$TITLE".jpg
+            if [ $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -lt 720 ]; then
             rm errors/"$TITLE".jpg; echo "$OUTPUT   -->   invalid image height/weight dimension & rating/genre" >> 'today.txt'
             continue
+            fi
+            echo "$OUTPUT   -->   rating/genre not available" >> 'today.txt'
+            continue
+        else
+            grep -q 'N/A' <<< "$RATING" && RATING=$(grep "$OUTPUT" whitelist | grep -oE '([0-9]\.[0-9]|[0-9][0-9]\.[0-9])')
+            grep -q 'N/A' <<< "$GENRE" && GENRE=$(grep "$OUTPUT" whitelist | sed 's/.*#//')
         fi
-        echo "$OUTPUT   -->   rating/genre not available" >> 'today.txt'
-        continue
-    elif [ $(sed 's/\.//' <<< "$RATING") -lt 55 ]; then
-        continue
+    else
+        if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
+            if [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && ! grep -q "$OUTPUT" whitelist; then continue; fi
+        else
+            if [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && ! grep -q "$OUTPUT" whitelist; then continue; fi
+        fi
     fi
 
     if grep -owF "$TITLE" list.txt; then
@@ -123,6 +137,14 @@ while IFS= read -r "OUTPUT"; do
     echo "$TITLE #$OUTPUT" >> titles.txt
     echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > movies/"$OUTPUT"
 done <<< "$output"
+
+if [ ! -e today.txt ]; then
+    if [ "$USER" != persie ]; then
+        echo | mutt -s 'turbodlbot | movies logs' -i logs.txt list.txt -- persie@turbodl.xyz
+    fi
+    exit
+fi
+sed -i "1s/^/$(date)\\n--------------------------------\\n/" today.txt
 
 if [ "$USER" != persie ]; then
     if [ -e titles.txt ]; then
