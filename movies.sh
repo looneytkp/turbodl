@@ -1,9 +1,9 @@
 #!/bin/env bash
 DIR=~/.turbodl
 if [ -d "$DIR" ]; then
-    cd "$DIR"; rm movies/* errors/* today.txt titles.txt 2> /dev/null
+    cd "$DIR"; rm complete/* errors/* today.txt titles.txt 2> /dev/null
 else
-    mkdir -p "$DIR"/movies "$DIR"/errors; cd "$DIR"
+    mkdir -p "$DIR"/complete "$DIR"/errors; cd "$DIR"
 fi
 
 if [ "$USER" != persie ]; then
@@ -125,16 +125,16 @@ while IFS= read -r "OUTPUT"; do
         done
     fi
 
-    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o movies/"$TITLE".jpg || exit
-    if [ $(identify -format "%w" movies/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" movies/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" movies/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" movies/"$TITLE".jpg)> /dev/null -lt 700 ]; then
-        echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $B" > errors/"$OUTPUT"
+    curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o complete/"$TITLE".jpg || exit
+    if [ $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -lt 700 ]; then
+        echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
         echo "$OUTPUT   -->   invalid image height/weight dimension" >> 'today.txt'
         continue
     fi
 
     if grep -qowF "$TITLE" movie_list.txt; then echo "$TITLE  -->   updated" >> 'today.txt'; else echo "$TITLE" >> 'today.txt' && sed -i "1s/^/$TITLE\\n/" movie_list.txt; fi
     echo "$TITLE #$OUTPUT" >> titles.txt
-    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > movies/"$OUTPUT"
+    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > complete/"$OUTPUT"
 done <<< "$output"
 
 if [ ! -e today.txt ]; then
@@ -150,7 +150,7 @@ if [ "$USER" != persie ]; then
         echo -e "\\n---sorting randomly---"
         SORTED_POSTS=$(sort -Rr < titles.txt)
         while IFS= read -r SORTED; do
-            echo | mutt -s "$(sed 's/ #.*//' <<< "$SORTED")" -i movies/"$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')" -a movies/"$(sed 's/ #.*//' <<< "$SORTED")".jpg -- Ud37asAUd8a7@turbodl.xyz
+            echo | mutt -s "$(sed 's/ #.*//' <<< "$SORTED")" -i complete/"$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')" -a complete/"$(sed 's/ #.*//' <<< "$SORTED")".jpg -- Ud37asAUd8a7@turbodl.xyz
         done <<< "$SORTED_POSTS"
     fi
 
