@@ -1,7 +1,7 @@
 #!/bin/env bash
 DIR=~/.turbodl
 if [ -d "$DIR" ]; then
-    cd "$DIR"; rm movies/* errors/* today.txt output* info file.x data titles.txt 2> /dev/null
+    cd "$DIR"; rm movies/* errors/* today.txt titles.txt 2> /dev/null
 else
     mkdir -p "$DIR"/movies "$DIR"/errors; cd "$DIR"
 fi
@@ -11,7 +11,7 @@ COUNT=1; COUNT1=0
 WP=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100" || exit)
 while [ $COUNT1 -lt 100 ]; do
     title=$(jq -r ".[$COUNT1].title.rendered" <<< "$WP" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
-    grep -q "$title" list.txt || echo "$title" >> list.txt
+    grep -q "$title" movie_list.txt || echo "$title" >> movie_list.txt
     COUNT1=$((COUNT1+1))
 done
 fi
@@ -24,7 +24,6 @@ fi
 URL=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "https://lightdlmovies.blogspot.com/search/label/MOVIES")
 output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
 output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
-#echo -e "$(date)\\n--------------------------------" > 'today.txt'
 
 if [ "$USER" != persie ]; then
     exec 3>&1 4>&2
@@ -98,7 +97,7 @@ while IFS= read -r "OUTPUT"; do
         fi
     fi
 
-    if grep -owF "$TITLE" list.txt; then
+    if grep -owF "$TITLE" movie_list.txt; then
         WP_RESULTS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=5")
 
         while [[ "$A" != 6 ]]; do
@@ -116,7 +115,7 @@ while IFS= read -r "OUTPUT"; do
                         echo "deleted $OUTPUT"
                     fi
                 else
-                    sed -i "/$TITLE/d" list.txt
+                    sed -i "/$TITLE/d" movie_list.txt
                 fi
                 break
             else
@@ -133,14 +132,14 @@ while IFS= read -r "OUTPUT"; do
         continue
     fi
 
-    if grep -qowF "$TITLE" list.txt; then echo "$TITLE  -->   updated" >> 'today.txt'; else echo "$TITLE" >> 'today.txt' && sed -i "1s/^/$TITLE\\n/" list.txt; fi
+    if grep -qowF "$TITLE" movie_list.txt; then echo "$TITLE  -->   updated" >> 'today.txt'; else echo "$TITLE" >> 'today.txt' && sed -i "1s/^/$TITLE\\n/" movie_list.txt; fi
     echo "$TITLE #$OUTPUT" >> titles.txt
-    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > movies/"$OUTPUT"
+    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > movies/"$OUTPUT"
 done <<< "$output"
 
 if [ ! -e today.txt ]; then
     if [ "$USER" != persie ]; then
-        echo | mutt -s 'turbodlbot | movies logs' -i logs.txt list.txt -- persie@turbodl.xyz
+        echo | mutt -s 'turbodlbot | movies logs' -i logs.txt movie_list.txt -- persie@turbodl.xyz
     fi
     exit
 fi
@@ -160,5 +159,5 @@ if [ "$USER" != persie ]; then
     else
         echo | mutt -s 'turbodlbot | movies' -i today.txt -a errors/* -- persie@turbodl.xyz info@turbodl.xyz
     fi
-    echo | mutt -s 'turbodlbot | movies logs' -i logs.txt list.txt -- persie@turbodl.xyz
+    echo | mutt -s 'turbodlbot | movies logs' -i logs.txt movie_list.txt -- persie@turbodl.xyz
 fi
