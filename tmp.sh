@@ -18,6 +18,13 @@ func(){
 }
 
 case "$1" in
+    -a) FILE=~/.turbodl/movie_list.txt
+        URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
+        func
+        FILE=~/.turbodl/series_list.txt
+        URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
+        func;;
+        ;;
     -m) FILE=~/.turbodl/movie_list.txt
         URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
         func
