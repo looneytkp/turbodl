@@ -132,7 +132,7 @@ while IFS= read -r "OUTPUT"; do
         continue
     fi
 
-    if grep -qowF "$TITLE" movie_list.txt; then echo "$TITLE  -->   updated" >> 'today.txt'; else echo "$TITLE" >> 'today.txt' && sed -i "1s/^/$TITLE\\n/" movie_list.txt; fi
+    if grep -qowF "$TITLE" movie_list.txt; then echo "$TITLE  -->   updated" >> today.txt; else echo "$TITLE" >> today.txt && sed -i "1s/^/$TITLE\\n/" movie_list.txt; fi
     echo "$TITLE #$OUTPUT" >> titles.txt
     echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > complete/"$OUTPUT"
 done <<< "$output"
