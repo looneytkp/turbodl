@@ -35,12 +35,12 @@ set -ex
 while IFS= read -r "OUTPUT"; do
     echo -e "\\n$OUTPUT\\n-----------------------"
     if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
-    set +x
+set +x
     SITE=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html))
-#    set -x
+#set -x
     LINKS="$(grep -oiE "(<span style=\"font-family.*http.*a>|<a href=.*S[0-9][0-9]E[0-9][0-9].*</a>)" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")"
     grep -qiE "(hd.*cm|HDCAM|HDTS).*mkv" <<< "$LINKS" && continue
-    set -x
+set -x
     YEAR=$(sed '0,/class=.*post-body/d; /CLICK ON LINKS BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -o 'Release.*[0-9][0-9][0-9][0-9]' | grep -o '[0-9][0-9][0-9][0-9]' || echo null)
     grep -q 'null' <<< "$YEAR" && echo "$OUTPUT   --> year not found" >> 'today.txt' && continue
     NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g' <<< "$OUTPUT")
@@ -106,9 +106,9 @@ while IFS= read -r "OUTPUT"; do
     if ! grep -q "$OUTPUT=" MD5SUM; then echo "$OUTPUT=$(md5sum <<< "$LINKS")" >> MD5SUM; fi
 
     if grep -owF "$TITLE" series_list.txt; then
-        set +x
+set +x
         WP_RESULTS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=5")
-        set -x
+set -x
 
         while [[ "$A" != 6 ]]; do
             if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")"; then
@@ -182,9 +182,9 @@ while IFS= read -r "OUTPUT"; do
         D=$((D+1))
     done
 
-    set +x
+set +x
     echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< "$YEAR")" > complete/"$OUTPUT"
-    set -x
+set -x
     rm links
 
 done <<< "$output"
