@@ -143,7 +143,7 @@ while IFS= read -r "OUTPUT"; do
     while true; do
         if [ $D -gt 9 ]; then
             if grep -qi "s$D" <<< "$LINKS"; then
-                if ! grep -qi "Season $D" links; then echo -e "\\nSeason $D" >> links; fi
+                if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
                 if grep -qi "s$D.*480p" <<< "$LINKS"; then
                     echo -e "\\n480p\\n$(grep -i "s$D.*480p" <<< "$LINKS")" >> links
                 fi
@@ -158,7 +158,7 @@ while IFS= read -r "OUTPUT"; do
             fi
         else
             if grep -qi "s0$D" <<< "$LINKS"; then
-                if ! grep -qi "Season 0$D" links; then echo -e "\\nSeason 0$D" >> links; fi
+                if ! grep -qi "Season 0$D" links; then echo -e "<h1>Season 0$D</h1>" >> links; fi
                 if grep -qi "s0$D.*480p" <<< "$LINKS"; then
                     echo -e "\\n480p\\n$(grep -i "s0$D.*480p" <<< "$LINKS")" >> links
                 fi
