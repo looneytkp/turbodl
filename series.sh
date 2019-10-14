@@ -37,9 +37,10 @@ while IFS= read -r "OUTPUT"; do
     if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
     set +x
     SITE=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html))
+    set -x
     LINKS="$(grep -oiE "(<span style=\"font-family.*http.*a>|<a href=.*S[0-9][0-9]E[0-9][0-9].*</a>)" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")"
     grep -qiE "(hd.*cm|HDCAM|HDTS).*mkv" <<< "$LINKS" && continue
-    set -x
+#    set -x
     YEAR=$(sed '0,/class=.*post-body/d; /CLICK ON LINKS BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -o 'Release.*[0-9][0-9][0-9][0-9]' | grep -o '[0-9][0-9][0-9][0-9]' || echo null)
     grep -q 'null' <<< "$YEAR" && echo "$OUTPUT   --> year not found" >> 'today.txt' && continue
     NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g' <<< "$OUTPUT")
@@ -101,6 +102,9 @@ while IFS= read -r "OUTPUT"; do
         fi
     fi
 
+    touch MD5SUM
+    if ! grep -q "$OUTPUT=" MD5SUM; then echo "$OUTPUT=$(md5sum <<< "$LINKS")" >> MD5SUM; fi
+
     if grep -owF "$TITLE" series_list.txt; then
         WP_RESULTS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=5")
 
@@ -108,14 +112,15 @@ while IFS= read -r "OUTPUT"; do
             if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")"; then
                 WP_LINKS=$(jq -r ".[$A].content.rendered" <<< "$WP_RESULTS" | grep -o '<a href.*</a>' || true)
                 if grep -q 'http' <<< "$WP_LINKS"; then
-                    LINKS2=$(sed "/CLICK HERE FOR SUBTITLES/d" <<< "$LINKS")
-                    if [ "$(md5sum <<< "$WP_LINKS")" == "$(md5sum <<< "$LINKS2")" ]; then
+                    LINKS2=$(sed "/CLICK HERE FOR SUBTITLES/d; /target.*self.*Load more/d" <<< "$LINKS")
+                    if [ "$(grep "$OUTPUT=" MD5SUM | sed 's/.*=//')" == "$(md5sum <<< "$LINKS2")" ]; then
                         continue 2
                     else
                         if [ "$USER" != persie ]; then
                             curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
                             curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
                         fi
+                        sed -i "s/$OUTPUT=.*/$OUTPUT=$(md5sum <<< "$LINKS2")/" MD5SUM
                         echo "deleted $OUTPUT"
                     fi
                 else
