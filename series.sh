@@ -70,7 +70,7 @@ set -x
     done
     A=0
 
-    IMDB_ID=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r '.[].show.ids.imdb')
+    IMDB_ID=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r '.[0].show.ids.imdb')
     ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   --> IMDB error getting data" >> today.txt && continue
 
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7")
