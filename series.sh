@@ -41,7 +41,7 @@ set +x
     LINKS="$(grep -oiE "(<span style=\"font-family.*http.*a>|<a href=.*S[0-9][0-9]E[0-9][0-9].*</a>)" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")"
     grep -qiE "(hd.*cm|HDCAM|HDTS).*mkv" <<< "$LINKS" && continue
 set -x
-    YEAR=$(sed '0,/class=.*post-body/d; /CLICK ON LINKS BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -o 'Release.*[0-9][0-9][0-9][0-9]' | grep -o '[0-9][0-9][0-9][0-9]' || echo null)
+    YEAR=$(sed '0,/class=.*post-body/d; /CLICK ON LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -o 'Release.*[0-9][0-9][0-9][0-9]' | grep -o '[0-9][0-9][0-9][0-9]' || echo null)
     grep -q 'null' <<< "$YEAR" && echo "$OUTPUT   --> year not found" >> 'today.txt' && continue
     NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g' <<< "$OUTPUT")
 
