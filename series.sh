@@ -119,7 +119,7 @@ set -x
                         continue 2
                     else
                         if [ "$USER" != persie ]; then
-                            curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
+                            curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")?force=true" 2> /dev/null
                             curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
                         fi
                         sed -i "s/$OUTPUT=.*/$OUTPUT=$(md5sum <<< "$LINKS2")/" MD5SUM
