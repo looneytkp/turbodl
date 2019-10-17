@@ -91,7 +91,7 @@ set -x
             echo "$OUTPUT   -->   rating/genre not available" >> today.txt
             continue
         else
-            grep -q 'N/A' <<< "$RATING" && RATING=$(grep "$OUTPUT" whitelist | grep -oE '([0-9]\.[0-9]|[0-9][0-9]\.[0-9])')
+            #grep -q 'N/A' <<< "$RATING" && RATING=$(grep "$OUTPUT" whitelist | grep -oE '([0-9]\.[0-9]|[0-9][0-9]\.[0-9]|N/A)')
             grep -q 'N/A' <<< "$GENRE" && GENRE=$(grep "$OUTPUT" whitelist | sed 's/.*#//')
         fi
     else
