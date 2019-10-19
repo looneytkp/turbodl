@@ -34,16 +34,16 @@ set -ex
 
 while IFS= read -r "OUTPUT"; do
     echo -e "\\n$OUTPUT\\n-----------------------"
-    if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
+    if grep ^"$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
 set +x
     SITE=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html))
 #set -x
     LINKS="$(grep -oiE "(<span style=\"font-family.*http.*a>|<a href=.*S[0-9][0-9]E[0-9][0-9].*</a>)" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/")"
     grep -qiE "(hd.*cm|HDCAM|HDTS).*mkv" <<< "$LINKS" && continue
 set -x
-    YEAR=$(sed '0,/class=.*post-body/d; /CLICK ON LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -o 'Release.*[0-9][0-9][0-9][0-9]' | grep -o '[0-9][0-9][0-9][0-9]' || echo null)
+    YEAR=$(sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' || echo null)
     grep -q 'null' <<< "$YEAR" && echo "$OUTPUT   --> year not found" >> 'today.txt' && continue
-    NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g' <<< "$OUTPUT")
+    NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g; s/ (Tv-Series)//' <<< "$OUTPUT")
 
     TMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR")
 
@@ -149,7 +149,7 @@ set -x
     touch links; D=1
     while true; do
         if [ $D -gt 9 ]; then
-            if grep -qi "s$D" <<< "$LINKS"; then
+            if grep -qiE "s$D.*(480p|720p|1080p)" <<< "$LINKS"; then
                 if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
                 if grep -qi "s$D.*480p" <<< "$LINKS"; then
                     echo -e "\\n480p\\n$(grep -i "s$D.*480p" <<< "$LINKS")" >> links
@@ -160,11 +160,13 @@ set -x
                 if grep -qi "s$D.*1080p" <<< "$LINKS"; then
                     echo -e "\\n1080p\\n$(grep -i "s$D.*1080p" <<< "$LINKS")" >> links
                 fi
+            elif grep -qi "s$D" <<< "$LINKS"; then
+                echo -e "\\n$(grep -i "s$D" <<< "$LINKS")" >> links
             else
                 break
             fi
         else
-            if grep -qi "s0$D" <<< "$LINKS"; then
+            if grep -qiE "s0$D.*(480p|720p|1080p)" <<< "$LINKS"; then
                 if ! grep -qi "Season 0$D" links; then echo -e "<h1>Season 0$D</h1>" >> links; fi
                 if grep -qi "s0$D.*480p" <<< "$LINKS"; then
                     echo -e "\\n480p\\n$(grep -i "s0$D.*480p" <<< "$LINKS")" >> links
@@ -175,6 +177,8 @@ set -x
                 if grep -qi "s0$D.*1080p" <<< "$LINKS"; then
                     echo -e "\\n1080p\\n$(grep -i "s0$D.*1080p" <<< "$LINKS")" >> links
                 fi
+            elif grep -qi "s0$D" <<< "$LINKS"; then
+                echo -e "\\n$(grep -i "s0$D" <<< "$LINKS")" >> links
             else
                 break
             fi
