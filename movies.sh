@@ -34,7 +34,7 @@ set -ex
 
 while IFS= read -r "OUTPUT"; do
     echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "What Happened to Monday 2017" ]; then continue; fi
+if [ "$OUTPUT" != "Nymphomaniac 2013 " ]; then continue; fi
     if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
     if grep "Collection" <<< "$OUTPUT"; then continue; fi
     LINKS="$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep -oE "<span style=\"font-family.*http.*(mkv|mp4)</a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/" || exit)"
@@ -49,6 +49,11 @@ while IFS= read -r "OUTPUT"; do
     A=0
     while [ "$A" -lt $(jq '.total_results' <<< "$TMDB_API") ]; do
         if grep -q "$YEAR" <<< $(jq -r ".results[$A].release_date" <<< "$TMDB_API"); then
+            POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
+            TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
+            OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
+            break
+        elif grep -q "$((YEAR+1))" <<< $(jq -r ".results[$A].release_date" <<< "$TMDB_API"); then
             POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
             TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
             OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
