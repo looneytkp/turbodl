@@ -37,7 +37,7 @@ while IFS= read -r "OUTPUT"; do
 #if [ "$OUTPUT" != "What Happened to Monday 2017" ]; then continue; fi
     if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
     if grep "Collection" <<< "$OUTPUT"; then continue; fi
-    LINKS="$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep -o "<span style=\"font-family.*http.*mkv</a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/" || exit)"
+    LINKS="$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep -oE "<span style=\"font-family.*http.*(mkv|mp4)</a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/" || exit)"
     grep -qiE "(hd.*cm|HDCAM|HDTS).*mkv" <<< "$LINKS" && continue
 
     NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//' <<< "$OUTPUT")
