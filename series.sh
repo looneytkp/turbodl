@@ -43,7 +43,7 @@ set +x
 set -x
     YEAR=$(sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' || echo null)
     grep -q 'null' <<< "$YEAR" && echo "$OUTPUT   --> year not found" >> 'today.txt' && continue
-    NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g; s/ (Tv-Series)//' <<< "$OUTPUT")
+    NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/ (Tv-Series)//' <<< "$OUTPUT")
 
     TMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR")
 
@@ -81,7 +81,7 @@ set -x
     GENRE=$(jq -r '.Genre' <<< "$OMDB_API"); if grep -qi 'documentary' <<< "$GENRE"; then continue; fi
     RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
     if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
-        if ! grep -q "$OUTPUT" whitelist; then
+        if ! grep -q "^ $OUTPUT" whitelist; then
             echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
             curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o errors/"$TITLE".jpg
             if [ $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -lt 720 ]; then
