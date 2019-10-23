@@ -42,7 +42,7 @@ set +x
     grep -qiE "(hd.*cm|HDCAM|HDTS).*mkv" <<< "$LINKS" && continue
 set -x
     YEAR=$(sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' || echo null)
-    grep -q 'null' <<< "$YEAR" && echo "$OUTPUT   --> year not found" >> 'today.txt' && continue
+    grep -q 'null' <<< "$YEAR" && echo "$OUTPUT   -->   year not found" >> today.txt && continue
     NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/ (Tv-Series)//' <<< "$OUTPUT")
 
     TMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR")
@@ -52,12 +52,20 @@ set -x
     while [ "$A" -lt $(jq '.total_results' <<< "$TMDB_API") ]; do
         if grep -q "$YEAR" <<< $(jq -r ".results[$A].first_air_date" <<< "$TMDB_API"); then
             POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
+            if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue; fi
+            TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
+            OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
+            break
+        elif grep -q "$((YEAR+1))" <<< $(jq -r ".results[$A].first_air_date" <<< "$TMDB_API"); then
+            POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
+            if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue; fi
             TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
             OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
             break
         else
             if [ $(jq '.total_results' <<< "$TMDB_API") == 1 ]; then
                 POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
+                if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue; fi
                 TMDB_ID=$(jq -r ".results[$A] | .id" <<< "$TMDB_API")
                 OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
                 break
