@@ -52,20 +52,20 @@ set -x
     while [ "$A" -lt $(jq '.total_results' <<< "$TMDB_API") ]; do
         if grep -q "$YEAR" <<< $(jq -r ".results[$A].first_air_date" <<< "$TMDB_API"); then
             POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
-            if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue; fi
+            if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue 2; fi
             TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
             OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
             break
         elif grep -q "$((YEAR+1))" <<< $(jq -r ".results[$A].first_air_date" <<< "$TMDB_API"); then
             POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
-            if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue; fi
+            if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue 2; fi
             TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
             OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
             break
         else
             if [ $(jq '.total_results' <<< "$TMDB_API") == 1 ]; then
                 POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
-                if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue; fi
+                if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue 2; fi
                 TMDB_ID=$(jq -r ".results[$A] | .id" <<< "$TMDB_API")
                 OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
                 break
@@ -118,7 +118,7 @@ set +x
         WP_RESULTS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=5")
 set -x
 
-        while [[ "$A" != 6 ]]; do
+        while [[ "$A" != $(jq length <<< "$WP_RESULTS") ]]; do
             if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")"; then
                 WP_LINKS=$(jq -r ".[$A].content.rendered" <<< "$WP_RESULTS" | grep -o '<a href.*</a>' || true)
                 if grep -q 'http' <<< "$WP_LINKS"; then
