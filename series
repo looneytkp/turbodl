@@ -86,7 +86,8 @@ set -x
     YEAR=$(jq -r '.Year' <<< $OMDB_API)
     TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
     PLOT=$(jq -r '.Plot' <<< "$OMDB_API"); grep -q 'N/A' <<< "$PLOT" && PLOT="$OVERVIEW"; CAST=$(jq -r '.Actors' <<< "$OMDB_API")
-    GENRE=$(jq -r '.Genre' <<< "$OMDB_API"); if grep -qi 'documentary' <<< "$GENRE"; then continue; fi
+    GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
+    if grep -qi 'documentary' <<< "$GENRE"; then if ! grep -q "$OUTPUT" whitelist; then continue; fi; fi
     RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
     if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
         if ! grep -q ^"$OUTPUT" whitelist; then
