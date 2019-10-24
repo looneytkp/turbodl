@@ -52,20 +52,20 @@ set -x
     while [ "$A" -lt $(jq '.total_results' <<< "$TMDB_API") ]; do
         if grep -q "$YEAR" <<< $(jq -r ".results[$A].first_air_date" <<< "$TMDB_API"); then
             POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
-            if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue 2; fi
+            #if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue 2; fi
             TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
             OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
             break
         elif grep -q "$((YEAR+1))" <<< $(jq -r ".results[$A].first_air_date" <<< "$TMDB_API"); then
             POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
-            if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue 2; fi
+            #if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue 2; fi
             TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
             OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
             break
         else
             if [ $(jq '.total_results' <<< "$TMDB_API") == 1 ]; then
                 POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
-                if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue 2; fi
+                #if grep -q 'null' <<< "$POSTER"; then echo "$OUTPUT   -->   no poster" >> today.txt && continue 2; fi
                 TMDB_ID=$(jq -r ".results[$A] | .id" <<< "$TMDB_API")
                 OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
                 break
