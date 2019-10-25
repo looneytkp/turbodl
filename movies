@@ -150,12 +150,12 @@ done <<< "$output"
 
 if [ ! -e today.txt ]; then
     if [ "$USER" != persie ]; then
-        #echo | mutt -s 'turbodlbot | movies logs' -i logs.txt movie_list.txt -- persie@turbodl.xyz
-        curl --header 'Access-Token: o.6xtXrrxcyGxw6LOKD6fTnIdHXXQXh9jT' \
-        --header 'Content-Type: application/json' \
-        --data-binary {"body":"$(cat logs.txt)","title":"turbodlbot | movies logs","type":"note"} \
-        --request POST \
-        https://api.pushbullet.com/v2/pushes
+        echo | mutt -s 'turbodlbot | movies logs' -i logs.txt movie_list.txt -- persie@turbodl.xyz
+        #curl --header 'Access-Token: o.6xtXrrxcyGxw6LOKD6fTnIdHXXQXh9jT' \
+        #--header 'Content-Type: application/json' \
+        #--data-binary {"body":"$(cat logs.txt)","title":"turbodlbot | movies logs","type":"note"} \
+        #--request POST \
+        #https://api.pushbullet.com/v2/pushes
     fi
     exit
 fi
@@ -175,10 +175,10 @@ if [ "$USER" != persie ]; then
     else
         echo | mutt -s 'turbodlbot | movies' -i today.txt -a errors/* -- persie@turbodl.xyz info@turbodl.xyz
     fi
-    #echo | mutt -s 'turbodlbot | movies logs' -i logs.txt movie_list.txt -- persie@turbodl.xyz
-    curl --header 'Access-Token: o.6xtXrrxcyGxw6LOKD6fTnIdHXXQXh9jT' \
-    --header 'Content-Type: application/json' \
-    --data-binary "{\"body\":"$(cat logs.txt)",\"title\":\"turbodlbot | movies logs\",\"type\":\"note\"}" \
-    --request POST \
-    https://api.pushbullet.com/v2/pushes
+    echo | mutt -s 'turbodlbot | movies logs' -i logs.txt movie_list.txt -- persie@turbodl.xyz
+    #curl --header 'Access-Token: o.6xtXrrxcyGxw6LOKD6fTnIdHXXQXh9jT' \
+    #--header 'Content-Type: application/json' \
+    #--data-binary "{'body':$(cat logs.txt),'title':'turbodlbot | movies logs','type':'note'}" \
+    #--request POST \
+    #https://api.pushbullet.com/v2/pushes
 fi
