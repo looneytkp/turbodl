@@ -131,7 +131,7 @@ while IFS= read -r "OUTPUT"; do
                 break
             else
                 A=$((A+1))
-                if [ $A == 6 ]; then echo "$OUTPUT   -->   conflicting error" >> today.txt && continue 2; fi
+                if [ $A == $(jq length <<< "$WP_RESULTS") ]; then echo "$OUTPUT   -->   conflicting error" >> today.txt && continue 2; fi
             fi
         done
     fi
