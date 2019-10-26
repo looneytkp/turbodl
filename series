@@ -34,6 +34,7 @@ set -ex
 
 while IFS= read -r "OUTPUT"; do
     echo -e "\\n$OUTPUT\\n-----------------------"
+#if [ "$OUTPUT" != "Hawaii Five-0" ]; then continue; fi
     if grep ^"$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
 set +x
     SITE=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html))
@@ -78,8 +79,69 @@ set -x
     done
     A=0
 
+    TRAILERS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/tv/$TMDB_ID/videos?api_key=0dec8436bb1b7de2bbcb1920ac31111f" || exit)
+    if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
+        while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
+            if [ Trailer == $(jq -r ".results[$A].type" <<< "$TRAILERS") ]; then
+                KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS")
+                break
+            elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
+                unset KEY; break
+            else
+                A=$((A+1)); continue
+            fi
+        done
+    else
+        unset KEY
+    fi
+    A=0
+
     IMDB_ID=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r '.[0].show.ids.imdb')
     ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   --> IMDB error getting data" >> today.txt && continue
+
+set +x
+    touch links; D=1
+    while true; do
+        if [ $D -gt 9 ]; then
+            if grep -qiE "s$D.*(480p|720p|1080p)" <<< "$LINKS"; then
+                if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
+                if grep -qi "s$D.*480p" <<< "$LINKS"; then
+                    echo -e "\\n480p\\n$(grep -i "s$D.*480p" <<< "$LINKS")" >> links
+                fi
+                if grep -qi "s$D.*720p" <<< "$LINKS"; then
+                    echo -e "\\n720p\\n$(grep -i "s$D.*720p" <<< "$LINKS")" >> links
+                fi
+                if grep -qi "s$D.*1080p" <<< "$LINKS"; then
+                    echo -e "\\n1080p\\n$(grep -i "s$D.*1080p" <<< "$LINKS")" >> links
+                fi
+            elif grep -qi "s$D" <<< "$LINKS"; then
+                if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
+                echo -e "\\n$(grep -i "s$D" <<< "$LINKS")" >> links
+            else
+                break
+            fi
+        else
+            if grep -qiE "s0$D.*(480p|720p|1080p)" <<< "$LINKS"; then
+                if ! grep -qi "Season 0$D" links; then echo -e "<h1>Season 0$D</h1>" >> links; fi
+                if grep -qi "s0$D.*480p" <<< "$LINKS"; then
+                    echo -e "\\n480p\\n$(grep -i "s0$D.*480p" <<< "$LINKS")" >> links
+                fi
+                if grep -qi "s0$D.*720p" <<< "$LINKS"; then
+                    echo -e "\\n720p\\n$(grep -i "s0$D.*720p" <<< "$LINKS")" >> links
+                fi
+                if grep -qi "s0$D.*1080p" <<< "$LINKS"; then
+                    echo -e "\\n1080p\\n$(grep -i "s0$D.*1080p" <<< "$LINKS")" >> links
+                fi
+            elif grep -qi "s0$D" <<< "$LINKS"; then
+                if ! grep -qi "Season 0$D" links; then echo -e "<h1>Season 0$D</h1>" >> links; fi
+                echo -e "\\n$(grep -i "s0$D" <<< "$LINKS")" >> links
+            else
+                break
+            fi
+        fi
+        D=$((D+1))
+    done
+set -x
 
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7")
     grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   --> OMDB error getting data" >> today.txt && continue
@@ -91,7 +153,12 @@ set -x
     RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
     if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
         if ! grep -q ^"$OUTPUT" whitelist; then
-            echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+            if [ "$KEY" ]; then
+                echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\n<div align=center><iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></div>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+            else
+                echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+            fi
+#            echo -e "<div style=\"text-align: center;\echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
             curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o errors/"$TITLE".jpg
             if [ $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -lt 720 ]; then
             rm errors/"$TITLE".jpg; echo "$OUTPUT   -->   invalid image height/weight dimension & rating/genre" >> today.txt
@@ -121,11 +188,15 @@ set -x
 
         while [[ "$A" != $(jq length <<< "$WP_RESULTS") ]]; do
             if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")"; then
+set +x
                 WP_LINKS=$(jq -r ".[$A].content.rendered" <<< "$WP_RESULTS" | grep -o '<a href.*</a>' || true)
+set -x
                 if grep -q 'http' <<< "$WP_LINKS"; then
+set +x
                     LINKS2=$(sed "/CLICK HERE FOR SUBTITLES/d; /target.*self.*Load more/d" <<< "$LINKS")
+set -x
                     if [ "$(grep "$OUTPUT=" MD5SUM | sed 's/.*=//')" == "$(md5sum <<< "$LINKS2")" ]; then
-                        continue 2
+                        rm links; continue 2
                     else
                         if [ "$USER" != persie ]; then
                             curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")?force=true" 2> /dev/null
@@ -147,7 +218,12 @@ set -x
 
     curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o complete/"$TITLE".jpg || exit
     if [ $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -lt 700 ]; then
-        echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+        if [ "$KEY" ]; then
+            echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\n<div align=center><iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></div>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+        else
+            echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+        fi
+        #echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
         echo "$OUTPUT   -->   invalid image height/weight dimension" >> today.txt
         continue
     fi
@@ -155,50 +231,15 @@ set -x
     if grep -qowF "$TITLE" series_list.txt; then echo "$TITLE   -->   updated" >> today.txt; else echo "$TITLE" >> today.txt && sed -i "1s/^/$TITLE\\n/" series_list.txt; fi
     echo "$TITLE #$OUTPUT" >> titles.txt
 
-    touch links; D=1
-    while true; do
-        if [ $D -gt 9 ]; then
-            if grep -qiE "s$D.*(480p|720p|1080p)" <<< "$LINKS"; then
-                if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
-                if grep -qi "s$D.*480p" <<< "$LINKS"; then
-                    echo -e "\\n480p\\n$(grep -i "s$D.*480p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s$D.*720p" <<< "$LINKS"; then
-                    echo -e "\\n720p\\n$(grep -i "s$D.*720p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s$D.*1080p" <<< "$LINKS"; then
-                    echo -e "\\n1080p\\n$(grep -i "s$D.*1080p" <<< "$LINKS")" >> links
-                fi
-            elif grep -qi "s$D" <<< "$LINKS"; then
-                echo -e "\\n$(grep -i "s$D" <<< "$LINKS")" >> links
-            else
-                break
-            fi
-        else
-            if grep -qiE "s0$D.*(480p|720p|1080p)" <<< "$LINKS"; then
-                if ! grep -qi "Season 0$D" links; then echo -e "<h1>Season 0$D</h1>" >> links; fi
-                if grep -qi "s0$D.*480p" <<< "$LINKS"; then
-                    echo -e "\\n480p\\n$(grep -i "s0$D.*480p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s0$D.*720p" <<< "$LINKS"; then
-                    echo -e "\\n720p\\n$(grep -i "s0$D.*720p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s0$D.*1080p" <<< "$LINKS"; then
-                    echo -e "\\n1080p\\n$(grep -i "s0$D.*1080p" <<< "$LINKS")" >> links
-                fi
-            elif grep -qi "s0$D" <<< "$LINKS"; then
-                echo -e "\\n$(grep -i "s0$D" <<< "$LINKS")" >> links
-            else
-                break
-            fi
-        fi
-        D=$((D+1))
-    done
-
 set +x
-    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< "$YEAR")" > complete/"$OUTPUT"
+if [ "$KEY" ]; then
+    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\n<div align=center><iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></div>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > complete/"$OUTPUT"
+else
+    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > complete/"$OUTPUT"
+fi
+#    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< "$YEAR")" > complete/"$OUTPUT"
 set -x
-    rm links
+rm links
 
 done <<< "$output"
 

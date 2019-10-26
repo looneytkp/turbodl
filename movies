@@ -34,7 +34,7 @@ set -ex
 
 while IFS= read -r "OUTPUT"; do
     echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "Nymphomaniac 2013 " ]; then continue; fi
+#if [ "$OUTPUT" != "The.5th.Wave.2016" ]; then continue; fi
     if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
     if grep "Collection" <<< "$OUTPUT"; then continue; fi
     LINKS="$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep -oE "<span style=\"font-family.*http.*(mkv|mp4|avi)</a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/" || exit)"
@@ -76,6 +76,23 @@ while IFS= read -r "OUTPUT"; do
     done
     A=0
 
+    TRAILERS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/movie/$TMDB_ID/videos?api_key=0dec8436bb1b7de2bbcb1920ac31111f" || exit)
+    if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
+        while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
+            if [ Trailer == $(jq -r ".results[$A].type" <<< "$TRAILERS") ]; then
+                KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS")
+                break
+            elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
+                unset KEY; break
+            else
+                A=$((A+1)); continue
+            fi
+        done
+    else
+        unset KEY
+    fi
+    A=0
+
     IMDB_ID=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=movie" | jq -r '.[0].movie.ids.imdb' || exit)
     ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   --> IMDB error getting data" >> today.txt && continue
 
@@ -88,7 +105,11 @@ while IFS= read -r "OUTPUT"; do
     RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
     if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
         if ! grep -q ^"$OUTPUT" whitelist; then
-            echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+            if [ "$KEY" ]; then
+                echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\n<div align=center><iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></div>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+            else
+                echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+            fi
             curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o errors/"$TITLE".jpg
             if [ $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" errors/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" errors/"$TITLE".jpg)> /dev/null -lt 720 ]; then
             rm errors/"$TITLE".jpg; echo "$OUTPUT   -->   invalid image height/weight dimension & rating/genre" >> 'today.txt'
@@ -138,14 +159,22 @@ while IFS= read -r "OUTPUT"; do
 
     curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o complete/"$TITLE".jpg || exit
     if [ $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -lt 700 ]; then
-        echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+        if [ "$KEY" ]; then
+            echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\n<div align=center><iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></div>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+        else
+            echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+        fi
         echo "$OUTPUT   -->   invalid image height/weight dimension" >> 'today.txt'
         continue
     fi
 
     if grep -qowiF "$TITLE" movie_list.txt; then echo "$TITLE  -->   updated" >> today.txt; else echo "$TITLE" >> today.txt && sed -i "1s/^/$TITLE\\n/" movie_list.txt; fi
     echo "$TITLE #$OUTPUT" >> titles.txt
-    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > complete/"$OUTPUT"
+    if [ "$KEY" ]; then
+        echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\n<div align=center><iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></div>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > complete/"$OUTPUT"
+    else
+        echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $YEAR" > complete/"$OUTPUT"
+    fi
 done <<< "$output"
 
 if [ ! -e today.txt ]; then

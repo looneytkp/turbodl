@@ -1,32 +1,5 @@
-#fix N/A feedbacks
-#fix movie titles not appearing in list
-#fix some movies with incomplete data eg. image url
-#fix clustering of movie links
-#fix alternate links text appearing in text
-#fix movie not found feedback
-#comment on code
-#sync movie list to dropbox
-#setup daemon or cronjob
-#fix links not being processed due to misnomer
-#check for links before processing
-#discard movies with rating below 5.5
-##run checks with posts on website
-#check img dimension if downloaded from lightdl
-#send movie to errors directory if genre is N/A
-#skip movies with documentary genre
-#seperate CAM links
-#format error mail correctly
-##tags with years
-##fix wrong movie years, example aladdin 1992 and shaft 2000
-#add plot not available
-#delete or update posts with wp api
--find better pattern to find movie and rating
+<iframe src="https://www.youtube-nocookie.com/embed/QH2-TGUlwu4?autoplay=1&modestbranding=1&showinfo=0&rel=0" width="500" height="300" frameborder="0"></iframe>
+https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key=<<api_key>>&language=en-US
 
-
-
-curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?per_page=1&search=the%20best%20of%20enemies" | jq '.'
-curl -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=2&per_page=12" | jq '.' | grep 'rendered.*([0-9][0-9][0-9][0-9].*)'
-https://www.linode.com/docs/quick-answers/linux/start-service-at-boot/
-https://medium.com/@benmorel/creating-a-linux-service-with-systemd-611b5c8b91d6
 
 curl -s "http://api.icndb.com/jokes/random" | jq -r '.value.joke'
