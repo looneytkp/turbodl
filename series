@@ -82,7 +82,7 @@ set -x
     TRAILERS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/tv/$TMDB_ID/videos?api_key=0dec8436bb1b7de2bbcb1920ac31111f" || exit)
     if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
         while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
-            if [ Trailer == $(jq -r ".results[$A].type" <<< "$TRAILERS") ]; then
+            if [ Trailer == "$(jq -r ".results[$A].type" <<< "$TRAILERS")" ]; then
                 KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS")
                 break
             elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
@@ -154,9 +154,9 @@ set -x
     if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
         if ! grep -q ^"$OUTPUT" whitelist; then
             if [ "$KEY" ]; then
-                echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\n<div align=center><iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></div>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+                echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</p>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
             else
-                echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+                echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</p>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
             fi
 #            echo -e "<div style=\"text-align: center;\echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
             curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o errors/"$TITLE".jpg
@@ -219,9 +219,9 @@ set -x
     curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o complete/"$TITLE".jpg || exit
     if [ $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -lt 700 ]; then
         if [ "$KEY" ]; then
-            echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\n<div align=center><iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></div>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+            echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</p>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
         else
-            echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
+            echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</p>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
         fi
         #echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\n$LINKS\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > errors/"$OUTPUT"
         echo "$OUTPUT   -->   invalid image height/weight dimension" >> today.txt
@@ -233,9 +233,9 @@ set -x
 
 set +x
 if [ "$KEY" ]; then
-    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\n<div align=center><iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></div>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > complete/"$OUTPUT"
+    echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</p>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > complete/"$OUTPUT"
 else
-    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > complete/"$OUTPUT"
+    echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</p>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< $YEAR)" > complete/"$OUTPUT"
 fi
 #    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< "$YEAR")" > complete/"$OUTPUT"
 set -x
