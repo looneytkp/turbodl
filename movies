@@ -34,7 +34,7 @@ set -ex
 
 while IFS= read -r "OUTPUT"; do
     echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "The.5th.Wave.2016" ]; then continue; fi
+#if [ "$OUTPUT" != " The.Big.Short.2015 " ]; then continue; fi
     if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
     if grep "Collection" <<< "$OUTPUT"; then continue; fi
     LINKS="$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep -oE "<span style=\"font-family.*http.*(mkv|mp4|avi)</a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/" || exit)"
