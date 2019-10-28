@@ -34,14 +34,14 @@ set -ex
 
 while IFS= read -r "OUTPUT"; do
     echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != " The.Big.Short.2015 " ]; then continue; fi
+#if [ "$OUTPUT" != "Once_Upon_a_Time_in_Venice_2017 " ]; then continue; fi
     if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
     if grep "Collection" <<< "$OUTPUT"; then continue; fi
     LINKS="$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) | grep -oE "<span style=\"font-family.*http.*(mkv|mp4|avi)</a>" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/" || exit)"
     grep -qiE "(hd.*cm|HDCAM|HDTS).*mkv" <<< "$LINKS" && continue
 
-    NAME=$(sed -e 's/  $//; s/ $//;s/\./ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//' <<< "$OUTPUT")
-    YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || echo 'null')
+    NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//' <<< "$OUTPUT")
+    YEAR=$(grep -oE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || echo 'null')
     grep -q 'null' <<< "$YEAR" && echo "$OUTPUT   -->   year not found" >> today.txt && continue
 
     TMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/movie?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR" || exit)
@@ -106,7 +106,7 @@ while IFS= read -r "OUTPUT"; do
     if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
         if ! grep -q ^"$OUTPUT" whitelist; then
             if [ "$KEY" ]; then
-                echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</p>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+                echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</p>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
             else
                 echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</p>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
             fi
@@ -130,8 +130,9 @@ while IFS= read -r "OUTPUT"; do
     fi
 
     if grep -owiF "$TITLE" movie_list.txt; then
+set +x
         WP_RESULTS=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=5")
-
+set -x
         while [[ "$A" != $(jq length <<< "$WP_RESULTS") ]]; do
             if grep -i "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")"; then
                 WP_LINKS=$(jq -r ".[$A].content.rendered" <<< "$WP_RESULTS" | grep -o '<a href.*</a>' || true)
@@ -141,12 +142,20 @@ while IFS= read -r "OUTPUT"; do
                         continue 2
                     else
                         if [ "$USER" != persie ]; then
+set +x
                             curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
                             curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
+set -x
                         fi
                         echo "deleted $OUTPUT"
                     fi
                 else
+                    if [ "$USER" != persie ]; then
+set +x
+                        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
+                        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
+set -x
+                    fi
                     sed -i "/$TITLE/d" movie_list.txt
                 fi
                 break
@@ -160,7 +169,7 @@ while IFS= read -r "OUTPUT"; do
     curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s "$POSTER" -o complete/"$TITLE".jpg || exit
     if [ $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" complete/"$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" complete/"$TITLE".jpg)> /dev/null -lt 700 ]; then
         if [ "$KEY" ]; then
-            echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</p>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
+            echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</p>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
         else
             echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</p>\\n\\nTags: $GENRE, $YEAR" > errors/"$OUTPUT"
         fi
@@ -171,7 +180,7 @@ while IFS= read -r "OUTPUT"; do
     if grep -qowiF "$TITLE" movie_list.txt; then echo "$TITLE  -->   updated" >> today.txt; else echo "$TITLE" >> today.txt && sed -i "1s/^/$TITLE\\n/" movie_list.txt; fi
     echo "$TITLE #$OUTPUT" >> titles.txt
     if [ "$KEY" ]; then
-        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</p>\\n\\nTags: $GENRE, $YEAR" > complete/"$OUTPUT"
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</p>\\n\\nTags: $GENRE, $YEAR" > complete/"$OUTPUT"
     else
         echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKS\\n</p>\\n\\nTags: $GENRE, $YEAR" > complete/"$OUTPUT"
     fi
