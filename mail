@@ -5,7 +5,7 @@ if [ -d "$DIR" ]; then
     cd "$DIR"
 fi
 
-if [ -z "$(ls -A errors)" ]; then
+if [ ! -z "$(ls -A errors)" ]; then
     if [ -e mtoday.txt ]; then
         echo | mutt -s 'turbodlbot | movies' -i mtoday.txt -a errors/* -- persie@turbodl.xyz info@turbodl.xyz
     fi
