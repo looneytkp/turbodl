@@ -282,3 +282,4 @@ if [ "$USER" != persie ]; then
     #fi
     #echo | mutt -s 'turbodlbot | series logs' -i logs.txt series_list.txt -- persie@turbodl.xyz
 fi
+$(date)

@@ -22,3 +22,4 @@ else
 fi
 echo | mutt -s 'turbodlbot | movies logs' -i mlogs.txt -a movie_list.txt -- persie@turbodl.xyz
 echo | mutt -s 'turbodlbot | series logs' -i slogs.txt -a series_list.txt -- persie@turbodl.xyz
+rm -rf mtoday.txt stoday.txt 2> /dev/null
