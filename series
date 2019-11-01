@@ -173,12 +173,12 @@ set -x
     else
         if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
             if [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && ! grep -q "$OUTPUT" whitelist; then
-                if [ "$USER" != persie ]; then echo "$OUTPUT" >> ~/$DIR/blacklist; fi
+                #if [ "$USER" != persie ]; then echo "$OUTPUT" >> ~/$DIR/blacklist; fi
                 continue
             fi
         else
             if [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && ! grep -q "$OUTPUT" whitelist; then
-                if [ "$USER" != persie ]; then echo "$OUTPUT" >> ~/$DIR/blacklist; fi
+                #if [ "$USER" != persie ]; then echo "$OUTPUT" >> ~/$DIR/blacklist; fi
                 continue
             fi
         fi
