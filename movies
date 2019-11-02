@@ -227,4 +227,4 @@ if [ "$USER" != persie ]; then
     #--request POST \
     #https://api.pushbullet.com/v2/pushes
 fi
-$(date)
+echo $(date)
