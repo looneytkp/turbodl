@@ -6,7 +6,7 @@ if [ ! -d "$DIR" ]; then
 else
     cd "$DIR"
     mkdir -p movies series errors
-    rm *s/* *today.txt titles.txt *logs.txt 2> /dev/null
+    rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
 fi
 
 PARSE(){
@@ -119,7 +119,7 @@ MULTI_FUNC(){
     while IFS= read -r "OUTPUT"; do
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "Greys Anatomy" ]; then continue; fi
+#if [ "$OUTPUT" != "Dynasty" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
 set +xe
         SITE=$(curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html))
@@ -138,15 +138,15 @@ set -xe
         if [[ $1 == s ]]; then N='tv'; else N='movie'; fi
         TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/$N?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR")
         if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT   -->   not found" >> $1'today.txt'; continue; fi
-        if [[ $1 == s ]]; then N='first_air_date'; else N='release_date'; fi
+        if [[ $1 == s ]]; then F='first_air_date'; else F='release_date'; fi
         A=0
         while [ "$A" -lt "$(jq '.total_results' <<< $TMDB_API)" ]; do
-            if grep -q "$YEAR" <<< $(jq -r ".results[$A].$N" <<< "$TMDB_API"); then
+            if grep -q "$YEAR" <<< $(jq -r ".results[$A].$F" <<< "$TMDB_API"); then
                 POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
                 TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
                 OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
                 break
-            elif grep -q "$((YEAR+1))" <<< $(jq -r ".results[$A].$N" <<< "$TMDB_API"); then
+            elif grep -q "$((YEAR+1))" <<< $(jq -r ".results[$A].$F" <<< "$TMDB_API"); then
                 POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
                 TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
                 OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
@@ -229,7 +229,7 @@ set -xe
         else
             mv "$TITLE".jpg $FOLDER/"$TITLE".jpg
         fi
-        if grep -qowF "$TITLE" $LIST; then
+        if grep -owF "$TITLE" $LIST; then
             echo "$TITLE   -->   updated" >> $1'today.txt'
         else
             echo "$TITLE" >> $1'today.txt' && sed -i "1s/^/$TITLE\\n/" $LIST
