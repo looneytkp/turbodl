@@ -254,7 +254,7 @@ else
 fi
 #    echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$(cat links)\\n</div>\\n\\nTags: $GENRE, $(sed 's/–/, /' <<< "$YEAR")" > complete/"$OUTPUT"
 set -x
-rm links
+rm links; unset KEY
 
 done <<< "$output"
 

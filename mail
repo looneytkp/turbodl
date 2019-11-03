@@ -10,7 +10,7 @@ if [ ! -z "$(ls -A errors)" ]; then
         echo | mutt -s 'turbodlbot | movies' -i mtoday.txt -a errors/* -- persie@turbodl.xyz info@turbodl.xyz
     fi
     if [ -e stoday.txt ]; then
-        echo | mutt -s 'turbodlbot | series' -i stoday.txt -- persie@turbodl.xyz info@turbodl.xyz
+        echo | mutt -s 'turbodlbot | series' -i stoday.txt -a errors/* -- persie@turbodl.xyz info@turbodl.xyz
     fi
 else
     if [ -e mtoday.txt ]; then
@@ -22,4 +22,4 @@ else
 fi
 echo | mutt -s 'turbodlbot | movies logs' -i mlogs.txt -a movie_list.txt -- persie@turbodl.xyz
 echo | mutt -s 'turbodlbot | series logs' -i slogs.txt -a series_list.txt -- persie@turbodl.xyz
-rm -rf mtoday.txt stoday.txt 2> /dev/null
+rm -rf *today.txt *logs.txt 2> /dev/null
