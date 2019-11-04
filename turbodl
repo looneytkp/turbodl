@@ -279,6 +279,7 @@ set -xe
             while IFS= read -r SORTED; do
                 echo | mutt -s "$(sed 's/ #.*//' <<< "$SORTED")" -i $FOLDER/"$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')" -a $FOLDER/"$(sed 's/ #.*//' <<< "$SORTED")".jpg -- $MAIL
             done <<< "$SORTED_POSTS"
+            rm titles.txt
         fi
     fi
     echo "$(date)"
