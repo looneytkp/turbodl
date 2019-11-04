@@ -276,8 +276,7 @@ set -xe
                 MAIL='Ud37asAUd8a7@turbodl.xyz'
             fi
             while IFS= read -r SORTED; do
-                #echo | mutt -s "$(sed 's/ #.*//' <<< "$SORTED")" -i $FOLDER/"$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')" -a $FOLDER/"$(sed 's/ #.*//' <<< "$SORTED")".jpg -- $MAIL
-                echo "$(sed 's/ #.*//' <<< "$SORTED")"
+                echo | mutt -s "$(sed 's/ #.*//' <<< "$SORTED")" -i $FOLDER/"$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')" -a $FOLDER/"$(sed 's/ #.*//' <<< "$SORTED")".jpg -- $MAIL
             done <<< "$SORTED_POSTS"
         fi
     fi
