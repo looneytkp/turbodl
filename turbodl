@@ -266,7 +266,7 @@ set -xe
     done <<< "$output"
     if [ ! -e $1'today.txt' ]; then echo 'null posts'; exit; fi
     if [ $1 == s ]; then TYPE='Series'; else TYPE='Movies'; fi
-    sed -i "1s/^/-\\n$TYPE - $(date)\\n-\\n/" $1'today.txt'
+    sed -i "1s/^/-                                   -\\n$TYPE - $(date)\\n-                                   -\\n/" $1'today.txt'
     if [ "$USER" != persie ]; then
         if [ -e titles.txt ]; then
             echo -e "\\n---sorting randomly---"
