@@ -265,7 +265,8 @@ set -xe
         find links 2> /dev/null && rm links
     done <<< "$output"
     if [ ! -e $1'today.txt' ]; then echo 'null posts'; exit; fi
-    sed -i "1s/^/$(date)\\n--------------------------------\\n/" $1'today.txt'
+    if [ $1 == s ]; then TYPE='Movies'; else TYPE='Series'; fi
+    sed -i "1s/^/$TYPE - $(date)\\n------------------------------------\\n/" $1'today.txt'
     if [ "$USER" != persie ]; then
         if [ -e titles.txt ]; then
             echo -e "\\n---sorting randomly---"
