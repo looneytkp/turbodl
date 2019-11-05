@@ -17,11 +17,14 @@ if [ -e stoday.txt ]; then
     fi
 fi
 if [ ! -z "$(ls -A *_errors)" ]; then
-    echo | mutt -s 'turbodlbot' -i text.txt -a *_errors/* *logs.txt -- persie@turbodl.xyz info@turbodl.xyz
+    if [ -e text.txt ]; then
+        echo | mutt -s 'turbodlbot' -i text.txt -a *_errors/* *logs.txt -- persie@turbodl.xyz info@turbodl.xyz
+    fi
 else
-    echo | mutt -s 'turbodlbot' -i text.txt -a *logs.txt -- persie@turbodl.xyz info@turbodl.xyz
+    if [ -e text ]; then
+        echo | mutt -s 'turbodlbot' -i text.txt -a *logs.txt -- persie@turbodl.xyz info@turbodl.xyz
+    fi
 fi
-rm text 2> /dev/null
 #rm -rf *today.txt *logs.txt text.txt 2> /dev/null
 
 
