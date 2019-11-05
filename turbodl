@@ -215,12 +215,12 @@ set -xe
         else
             Y="$YEAR"; LINKZ="$LINKS"
         fi
+        curl $ARGS "$POSTER" -o "$TITLE".jpg || exit
         if ! grep 'http' <<< "$LINKZ"; then
             WRITE_TO_FILE $1
             echo "$OUTPUT   -->   null download links" >> $1'today.txt'
             continue
         fi
-        curl $ARGS "$POSTER" -o "$TITLE".jpg || exit
         if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
             if ! grep -q ^"$OUTPUT" whitelist; then
                 WRITE_TO_FILE $1
