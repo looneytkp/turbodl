@@ -83,8 +83,8 @@ CROSS_CHECK(){
                 else
                     if [ "$USER" != persie ]; then
 #set +x
-                        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
-                        if [ $? != 0 ]; then
+                        DELETE=$(curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null)
+                        if grep -q 'rest_post_invalid_id' <<< "$DELETE"; then
                             echo "$OUTPUT   --->   invalid WP post ID" >> $1'today.txt'
                             INV=yes; break
                         fi
