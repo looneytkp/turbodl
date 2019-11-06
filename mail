@@ -6,7 +6,7 @@ if [ -d "$DIR" ]; then
 fi
 
 if [ -e mtoday.txt -a -e stoday.txt ]; then
-    echo -e "$(cat mtoday.txt)\\n\\n\\n$(cat stoday.txt)" > text.txt; rm *today.txt
+    echo -e "$(cat mtoday.txt)\\n\\n$(cat stoday.txt)" > text.txt; rm *today.txt
 fi
 if [ -e mtoday.txt ]; then echo "$(cat mtoday.txt)" > text.txt; fi
 if [ -e stoday.txt ]; then
