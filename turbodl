@@ -84,6 +84,10 @@ CROSS_CHECK(){
                     if [ "$USER" != persie ]; then
 #set +x
                         curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
+                        if [ $? != 0 ]; then
+                            echo "$OUTPUT   --->   invalid WP post ID" >> $1'today.txt'
+                            INV=yes; break
+                        fi
                         curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
 #set -x
                     fi
@@ -242,6 +246,7 @@ set -xe
         fi
         if grep -owF "$TITLE" $LIST; then
             NUM=5; CROSS_CHECK $1
+            if [ $INV ]; then unset INV && continue; fi
             if [ $SAME ]; then
                 unset SAME && if [ -e "$TITLE".jpg ]; then rm "$TITLE".jpg; fi && continue
             fi
