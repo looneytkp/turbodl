@@ -8,7 +8,6 @@ else
     mkdir -p movies series s_errors m_errors
     rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
 fi
-
 PARSE(){
     touch links; D=1
     while true; do
@@ -67,7 +66,6 @@ WRITE_TO_FILE(){
     fi
     mv "$TITLE".jpg $FOLDER/"$TITLE".jpg
 }
-
 CROSS_CHECK(){
     A=0
     WP_RESULTS=$(curl $ARGS -X GET "https://$SITE/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=$NUM")
@@ -119,7 +117,6 @@ set -x
     fi
     if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
 }
-
 MULTI_FUNC(){
     output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
     output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
@@ -136,10 +133,9 @@ set +xe
         SITE=$(curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html))
 set -xe
         LINKS=$(grep -oiE "(<span style=\"font-family.*http|<a href=).*(.*|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d")
-        #while IFS= read -r "DL_LINKS"; do
-        #    FEEDBACK=$(wget --spider "$DL_LINKS")
-        #    if [ "$?" != 0 ]; then LINKS=$(sed "$DL_LINKS/d" <<< "$LINKS")
-        #done <<< "$LINKS"
+#        while IFS= read -r "DL_LINKS"; do
+#            FEEDBACK=$(wget --spider $(grep -oE "http.*(mkv|mp4|avi)" <<< "$DL_LINKS") || true)
+#        done <<< "$LINKS"
         grep -qiE "(hd.*cm|HDCAM|HDTS).*mkv" <<< "$LINKS" && continue
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' || echo 'null')
         if grep -q 'null' <<< "$YEAR"; then
@@ -221,7 +217,7 @@ set -xe
             if ! grep -q ^"$OUTPUT" whitelist; then
                 WRITE_TO_FILE $1
                 echo "$OUTPUT   -->   rating/genre not available" >> $1'today.txt'
-                rm links
+                if [ -e links ]; then rm links; fi
                 continue
             else
                 grep -q 'N/A' <<< "$GENRE" && GENRE=$(grep "$OUTPUT" whitelist | sed 's/.*#//')
@@ -341,13 +337,13 @@ set +xe
             URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit)
             MULTI_FUNC s;;
     -r)
-        P=733
-        while [ $P != 730 ]; do
-            LNK="https://lightdlmovies.blogspot.com/search?updated-max=2019-11-03T07%3A18%3A00%2B00%3A00&max-results=10#PageNo=$P"
+        P=46
+        while [ $P != 50 ]; do
+            LNK="https://lightdlmovies.blogspot.com/search/label/MOVIES?updated-max=2019-09-17T21%3A17%3A00%2B00%3A00&max-results=10#PageNo=$P"
             URL=$(curl $ARGS "$LNK" || echo "invalid")
             grep -q invalid <<< "$URL" && echo "invalid: $LNK" && break
             MULTI_FUNC m
-            P=$((P-1))
+            P=$((P+1))
         done;;
     *)
         if grep -q movies <<< "$1"; then
