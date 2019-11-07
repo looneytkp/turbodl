@@ -16,9 +16,9 @@ if [ -e stoday.txt ]; then
         echo "$(cat stoday.txt)" > text.txt
     fi
 fi
-if [ ! -z "$(ls -A *_errors)" ]; then
+if [ ! -z "$(ls -A errors)" ]; then
     if [ -e text.txt ]; then
-        echo | mutt -s 'turbodlbot' -i text.txt -a *_errors/* *logs.txt -- persie@turbodl.xyz info@turbodl.xyz
+        echo | mutt -s 'turbodlbot' -i text.txt -a errors/* *logs.txt -- persie@turbodl.xyz info@turbodl.xyz
     else
         echo | mutt -s 'turbodlbot | logs only' -a *logs.txt -- persie@turbodl.xyz
     fi

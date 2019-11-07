@@ -2,10 +2,10 @@
 DIR=~/.turbodl
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s'
 if [ ! -d "$DIR" ]; then
-    mkdir -p "$DIR"/movies "$DIR"/series $DIR/s_errors $DIR/m_errors; cd "$DIR"
+    mkdir -p "$DIR"/movies "$DIR"/series $DIR/errors; cd "$DIR"
 else
     cd "$DIR"
-    mkdir -p movies series s_errors m_errors
+    mkdir -p movies series errors
     rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
 fi
 PARSE(){
@@ -57,7 +57,7 @@ WRITE_TO_FILE(){
     elif [[ $1 == M ]]; then
         FOLDER='movies'
     else
-        FOLDER=$1_'errors'
+        FOLDER=errors
     fi
     if [ "$KEY" ]; then
         echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
