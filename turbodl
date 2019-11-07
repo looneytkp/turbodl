@@ -60,7 +60,7 @@ WRITE_TO_FILE(){
         FOLDER=$1_'errors'
     fi
     if [ "$KEY" ]; then
-        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre>\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     else
         echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKZ\\n</div>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     fi
@@ -336,15 +336,6 @@ case $1 in
 set +xe
             URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit)
             MULTI_FUNC s;;
-    -r)
-        P=46
-        while [ $P != 50 ]; do
-            LNK="https://lightdlmovies.blogspot.com/search/label/MOVIES?updated-max=2019-09-17T21%3A17%3A00%2B00%3A00&max-results=10#PageNo=$P"
-            URL=$(curl $ARGS "$LNK" || echo "invalid")
-            grep -q invalid <<< "$URL" && echo "invalid: $LNK" && break
-            MULTI_FUNC m
-            P=$((P+1))
-        done;;
     *)
         if grep -q movies <<< "$1"; then
             URL=$(curl $ARGS "$1" || exit); MULTI_FUNC m
