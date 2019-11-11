@@ -23,6 +23,9 @@ PARSE(){
                 if grep -qi "s$D.*1080p" <<< "$LINKS"; then
                     echo -e "\\n1080p\\n$(grep -i "s$D.*1080p" <<< "$LINKS")" >> links
                 fi
+                if grep -qi "s$D.*2160p" <<< "$LINKS"; then
+                    echo -e "\\n2160p\\n$(grep -i "s$D.*2160p" <<< "$LINKS")" >> links
+                fi
             elif grep -qi "s$D" <<< "$LINKS"; then
                 if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
                 echo -e "\\n$(grep -i "s$D" <<< "$LINKS")" >> links
@@ -40,6 +43,9 @@ PARSE(){
                 fi
                 if grep -qi "s0$D.*1080p" <<< "$LINKS"; then
                     echo -e "\\n1080p\\n$(grep -i "s0$D.*1080p" <<< "$LINKS")" >> links
+                fi
+                if grep -qi "s0$D.*2160p" <<< "$LINKS"; then
+                    echo -e "\\n2160p\\n$(grep -i "s0$D.*2160p" <<< "$LINKS")" >> links
                 fi
             elif grep -qi "s0$D" <<< "$LINKS"; then
                 if ! grep -qi "Season 0$D" links; then echo -e "<h1>Season 0$D</h1>" >> links; fi
@@ -290,6 +296,8 @@ if [ "$USER" != persie ]; then
     cat ~/turbodl/blacklist > ~/.turbodl/blacklist
 fi
 case $1 in
+    '')
+        echo ':: no arguments, nothing to do';;
     -m)
         if [ "$USER" != persie ]; then
             COUNT=1; COUNT1=0
@@ -342,6 +350,6 @@ set +xe
         elif grep -q SERIES <<< "$1"; then
             URL=$(curl $ARGS "$1" || exit); MULTI_FUNC s
         else
-            echo "invalid $1"
+            echo ":: invalid: $1"
         fi;;
 esac
