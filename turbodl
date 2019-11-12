@@ -68,7 +68,7 @@ WRITE_TO_FILE(){
     if [ "$KEY" ]; then
         echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     else
-        echo -e "<div style=\"text-align: center;\">\\n$PLOT\\n\\nIMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE\\n\\nDownload Links:\\n$LINKZ\\n</div>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     fi
     mv "$TITLE".jpg $FOLDER/"$TITLE".jpg
 }
@@ -139,14 +139,11 @@ set +xe
         SITE=$(curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html))
 set -xe
         LINKS=$(grep -oiE "(<span style=\"font-family.*http|<a href=).*(.*|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d")
-#        while IFS= read -r "DL_LINKS"; do
-#            FEEDBACK=$(wget --spider $(grep -oE "http.*(mkv|mp4|avi)" <<< "$DL_LINKS") || true)
-#        done <<< "$LINKS"
         grep -qiE "(hd.*cm|HDCAM|HDTS).*mkv" <<< "$LINKS" && continue
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' || echo 'null')
         if grep -q 'null' <<< "$YEAR"; then
-            if grep ^"$OUTPUT" whitelist; then
-                YEAR=$(grep "$OUTPUT" whitelist | sed 's/.*#//')
+            if grep -o "$OUTPUT" whitelist; then
+                YEAR=$(grep -o "$OUTPUT.*#[0-9][0-9][0-9][0-9]" whitelist | sed 's/.*#//')
             else
                 echo "$OUTPUT   -->   year not found" >> $1'today.txt' && continue
             fi
@@ -220,7 +217,7 @@ set -xe
             continue
         fi
         if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
-            if ! grep -q ^"$OUTPUT" whitelist; then
+            if ! grep -q "$OUTPUT" whitelist; then
                 WRITE_TO_FILE $1
                 echo "$OUTPUT   -->   rating/genre not available" >> $1'today.txt'
                 if [ -e links ]; then rm links; fi
@@ -252,7 +249,7 @@ set -xe
             fi
         fi
         if [ $(identify -format "%w" "$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" "$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -lt 700 ]; then
-            if ! grep -q ^"$OUTPUT" whitelist; then
+            if ! grep -q "$OUTPUT" whitelist; then
                 WRITE_TO_FILE $1
                 echo "$OUTPUT   -->   invalid image height/weight dimension" >> $1'today.txt'
                 continue
