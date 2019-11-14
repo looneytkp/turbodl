@@ -275,7 +275,7 @@ set -xe
         if [ "$USER" != persie ]; then
             if [ -e titles.txt ]; then
                 echo -e "\\n---sorting randomly---"
-                SORTED_POSTS=$(sort -Rr < titles.txt | sed 's/9-1-1/911/')
+                SORTED_POSTS=$(sort -Rr < titles.txt)
                 if [[ $1 == s ]]; then
                     MAIL='Ahd8s7a8a9skA@turbodl.xyz'
                 else
