@@ -265,7 +265,6 @@ set -xe
         fi
         echo "$TITLE #$OUTPUT".txt >> titles.txt
         if [ $1 == s ]; then WRITE_TO_FILE S; elif [ $1 == m ]; then WRITE_TO_FILE M; fi
-        find links 2> /dev/null #&& rm links
     done <<< "$output"
     if [ ! -e $1'today.txt' ]; then
         echo 'null posts'
