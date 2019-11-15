@@ -83,7 +83,7 @@ CROSS_CHECK(){
                 LINKS2=$(sed "/CLICK HERE FOR SUBTITLES/d; /target.*self.*Load more/d" <<< "$LINKS")
                 sort -n <<< "$WP_LINKS" > one && sort -n <<< "$LINKS2" > two
                 if cmp -s one two; then
-                    find links 2> /dev/null #&& rm links
+                    #find links 2> /dev/null #&& rm links
                     SAME=1 && export SAME; break
                 else
                     if [ "$USER" != persie ]; then
