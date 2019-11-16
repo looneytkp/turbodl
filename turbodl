@@ -134,7 +134,7 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "All Rise" ]; then continue; fi
+#if [ "$OUTPUT" != "The Driver 2019" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
@@ -223,8 +223,8 @@ set -xe
                 WRITE_TO_FILE $1
                 echo "$OUTPUT   -->   rating/genre not available" >> $1'today.txt'
                 continue
-            else
-                grep -q 'N/A' <<< "$GENRE" && GENRE=$(grep "$OUTPUT" whitelist | sed 's/.*#//')
+            #else
+                #grep -q 'N/A' <<< "$GENRE" && GENRE=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT.*#//")
             fi
         else
             if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
@@ -291,6 +291,9 @@ set -xe
 if [ "$USER" != persie ]; then
     cat ~/turbodl/whitelist > ~/.turbodl/whitelist
     cat ~/turbodl/blacklist > ~/.turbodl/blacklist
+else
+    cat ~/git/turbodl/whitelist > ~/.turbodl/whitelist
+    cat ~/git/turbodl/blacklist > ~/.turbodl/blacklist
 fi
 case $1 in
     '')
