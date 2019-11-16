@@ -83,7 +83,6 @@ CROSS_CHECK(){
                 LINKS2=$(sed "/CLICK HERE FOR SUBTITLES/d; /target.*self.*Load more/d" <<< "$LINKS")
                 sort -n <<< "$WP_LINKS" > one && sort -n <<< "$LINKS2" > two
                 if cmp -s one two; then
-                    #find links 2> /dev/null #&& rm links
                     SAME=1 && export SAME; break
                 else
                     if [ "$USER" != persie ]; then
@@ -112,7 +111,7 @@ set -x
                     NUM=20; CROSS_CHECK $1
                 else
                     echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-                    #if [ -e links ]; then rm links; fi
+                    bash ~/turbodl/tmp -a
                     SAME=1 && export SAME && break
                 fi
             fi
@@ -120,7 +119,7 @@ set -x
     done
     if [ $(jq length <<< "$WP_RESULTS") == 0 ]; then
         echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-        #if [ -e links ]; then rm links; fi
+        bash ~/turbodl/tmp -a
         SAME=1 && export SAME
     fi
     if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
@@ -223,7 +222,6 @@ set -xe
             if ! grep -q "$OUTPUT" whitelist; then
                 WRITE_TO_FILE $1
                 echo "$OUTPUT   -->   rating/genre not available" >> $1'today.txt'
-                #if [ -e links ]; then rm links; fi
                 continue
             else
                 grep -q 'N/A' <<< "$GENRE" && GENRE=$(grep "$OUTPUT" whitelist | sed 's/.*#//')
