@@ -111,7 +111,7 @@ set -x
                     NUM=20; CROSS_CHECK $1
                 else
                     echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-                    bash ~/turbodl/tmp -a
+                    if [ "$USER" != persie ]; then bash ~/turbodl/tmp -a; fi
                     SAME=1 && export SAME && break
                 fi
             fi
@@ -119,7 +119,7 @@ set -x
     done
     if [ $(jq length <<< "$WP_RESULTS") == 0 ]; then
         echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-        bash ~/turbodl/tmp -a
+        if [ "$USER" != persie ]; then bash ~/turbodl/tmp -a; fi
         SAME=1 && export SAME
     fi
     if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
