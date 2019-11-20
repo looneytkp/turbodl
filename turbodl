@@ -9,15 +9,7 @@ else
     rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
 fi
 PARSE(){
-    #if [ -e links ]; then rm links; fi
-    #while IFS= read -r "LINE"; do
-    #    SIZE=$(wget -o - --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
-    #    if grep -qE "(G|M)" <<< $SIZE; then
-    #        echo "$LINE - $SIZE"B >> links
-    #    else
-    #        echo "$LINE" >> links
-    #    fi
-    #done <<< "$LINKZ"
+    #GET_SIZES s
     #LINKS=$(cat links); if [ -e links ]; then rm links; fi
     touch links; D=1
     while true; do
@@ -67,20 +59,26 @@ PARSE(){
         D=$((D+1))
     done
 }
+GET_SIZES(){
+    set +x
+    if [ $1 == s ]; then LINKZ="$LINKS"; fi
+    if [ -e links ]; then rm links; fi
+    while IFS= read -r "LINE"; do
+        SIZE=$(wget -o - --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
+        if grep -qE "(G|M)" <<< $SIZE; then
+            echo "$LINE - $SIZE"B >> links
+        else
+            echo "$LINE" >> links
+        fi
+    done <<< "$LINKZ"
+    set -x
+}
 WRITE_TO_FILE(){
     if [[ $1 == S ]]; then
         FOLDER='series'
     elif [[ $1 == M ]]; then
         FOLDER='movies'
-        if [ -e links ]; then rm links; fi
-        while IFS= read -r "LINE"; do
-            SIZE=$(wget -o - --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
-            if grep -qE "(G|M)" <<< $SIZE; then
-                echo "$LINE - $SIZE"B >> links
-            else
-                echo "$LINE" >> links
-            fi
-        done <<< "$LINKZ"
+        GET_SIZES
         LINKZ=$(cat links)
     else
         FOLDER=errors
@@ -156,7 +154,7 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "Tigers Are Not Afraid 2017" ]; then continue; fi
+#if [ "$OUTPUT" != "Sistas" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
