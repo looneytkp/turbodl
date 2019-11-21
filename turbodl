@@ -9,8 +9,8 @@ else
     rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
 fi
 PARSE(){
-    GET_SIZES s
-    LINKS=$(cat links); if [ -e links ]; then rm links; fi
+    #GET_SIZES s
+    #LINKS=$(cat links); if [ -e links ]; then rm links; fi
     touch links; D=1
     while true; do
         if [ $D -gt 9 ]; then
