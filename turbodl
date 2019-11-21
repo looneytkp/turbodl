@@ -9,8 +9,6 @@ else
     rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
 fi
 PARSE(){
-    #GET_SIZES s
-    #LINKS=$(cat links); if [ -e links ]; then rm links; fi
     touch links; D=1
     while true; do
         if [ $D -gt 9 ]; then
@@ -60,31 +58,33 @@ PARSE(){
     done
 }
 GET_SIZES(){
-    set +x
-    if [ $1 == s ]; then LINKZ="$LINKS"; fi
+set +x
     if [ -e links ]; then rm links; fi
+    if [ $1 == s ]; then echo "$LINKZ" > links; fi
     while IFS= read -r "LINE"; do
+        if [ $1 == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
         SIZE=$(wget -o - -t 5 --timeout=5 --tries=3 --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
         if grep -qE "(G|M)" <<< $SIZE; then
+            if [ $1 == s ]; then sed -i 's|'"$LINE"'|'"$LINE"' - '"${SIZE}B"'|' links; continue; fi
             echo "$LINE - $SIZE"B >> links
         else
-            echo "$LINE - null" >> links
+            if [ $1 == s ]; then sed -i 's|'"$LINE"'|'"$LINE"' - Null|' links; continue; fi
+            echo "$LINE - Null" >> links
         fi
     done <<< "$LINKZ"
-    set -x
+set -x
 }
 WRITE_TO_FILE(){
     if [[ $1 == S ]]; then
         FOLDER='series'
+        GET_SIZES s
     elif [[ $1 == M ]]; then
         FOLDER='movies'
         GET_SIZES
-        LINKZ=$(cat links)
     else
         FOLDER=errors
     fi
-    if [ -e links ]; then rm links; fi
-
+    LINKZ=$(cat links)
     if [ "$KEY" ]; then
         echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     else
@@ -106,10 +106,10 @@ CROSS_CHECK(){
                     SAME=1 && export SAME; break
                 else
                     if [ "$USER" != persie ]; then
-#set +x
+set +x
                         curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
                         curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
-#set -x
+set -x
                     fi
                     echo "deleted $OUTPUT"
                 fi
