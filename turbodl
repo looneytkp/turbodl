@@ -68,8 +68,8 @@ set +x
             if [ $1 == s ]; then sed -i 's|'"$LINE"'|'"$LINE"' - '"${SIZE}B"'|' links; continue; fi
             echo "$LINE - $SIZE"B >> links
         else
-            if [ $1 == s ]; then sed -i 's|'"$LINE"'|'"$LINE"' - Null|' links; continue; fi
-            echo "$LINE - Null" >> links
+            if [ $1 == s ]; then sed -i 's|'"$LINE"'|'"$LINE"'|' links; continue; fi
+            echo "$LINE" >> links
         fi
     done <<< "$LINKZ"
 set -x
