@@ -100,7 +100,7 @@ CROSS_CHECK(){
             WP_LINKS=$(jq -r ".[$A].content.rendered" <<< "$WP_RESULTS" | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g" || true)
             if [ $1 == s ]; then R='series.turbodl'; else R='turbodl'; fi
             if grep -q 'http' <<< "$WP_LINKS"; then
-                LINKS2=$(sed "/CLICK HERE FOR SUBTITLES/d; /target.*self.*Load more/d" <<< "$LINKS")
+                LINKS2=$(sed "s/<\/a>.*/<\/a>/; /CLICK HERE FOR SUBTITLES/d; /target.*self.*Load more/d" <<< "$LINKS")
                 sort -n <<< "$WP_LINKS" > one && sort -n <<< "$LINKS2" > two
                 if cmp -s one two; then
                     SAME=1 && export SAME; break
@@ -154,7 +154,7 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "The Good Doctor" ]; then continue; fi
+if [ "$OUTPUT" != "Sistas" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
