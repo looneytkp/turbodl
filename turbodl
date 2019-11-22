@@ -147,13 +147,13 @@ set -x
     if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
 }
 MULTI_FUNC(){
-    unset COLLECTION
     output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
     output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
     exec 3>&1 4>&2
     trap 'exec 2>&4 1>&3' 0 1 2 3
     exec 1>$1'logs.txt' 2>&1
     while IFS= read -r "OUTPUT"; do
+        unset COLLECTION
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
