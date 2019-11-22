@@ -230,7 +230,7 @@ set -xe
         grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   -->   OMDB error getting data" >> $1'today.txt' && continue
         if [ $COLLECTION ]; then
             TITLE="$NAME - Collection"; GENRE='Collection'; unset KEY
-            CAST=N/A; RATING=N/A
+            CAST=N/A; RATING=N/A; YEAR=''
         else
             YEAR=$(jq -r '.Year' <<< $OMDB_API)
             TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
