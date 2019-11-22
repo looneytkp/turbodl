@@ -158,7 +158,7 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "Step Up - Collection" ]; then continue; fi
+#if [ "$OUTPUT" != "Home Alone" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
@@ -169,7 +169,8 @@ set -xe
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' || echo 'null')
         if grep -q 'null' <<< "$YEAR"; then
             if grep -o "$OUTPUT" whitelist; then
-                YEAR=$(grep -o "$OUTPUT.*#[0-9][0-9][0-9][0-9]" whitelist | sed 's/.*#//')
+                YEAR=$(grep -oiE "$OUTPUT.*#([0-9][0-9][0-9][0-9]|collection)" whitelist | sed 's/.*#//')
+                if [ "$YEAR" == "Collection" ]; then unset YEAR; COLLECTION=YES; fi
             elif grep -qi 'collection' <<< $OUTPUT; then
                 COLLECTION=YES
             else
