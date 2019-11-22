@@ -296,7 +296,7 @@ set -xe
         else
             echo "$OUTPUT" >> $1'today.txt' && sed -i "1s/^/$TITLE\\n/" $LIST
         fi
-        echo "$TITLE #$OUTPUT".txt >> titles.txt
+        echo "$TITLE %$OUTPUT".txt >> titles.txt
         unset COLLECTION
     done <<< "$output"
     if [ ! -e $1'today.txt' ]; then
@@ -315,7 +315,7 @@ set -xe
                 fi
                 if [ $1 == s ]; then FOLDER='series'; else FOLDER='movies'; fi
                 while IFS= read -r SORTED; do
-                    echo | mutt -s "$(sed 's/ #.*//' <<< "$SORTED")" -i $FOLDER/"$(grep -o '#.*' <<< "$SORTED" | sed 's/#//')" -a $FOLDER/"$(sed 's/ #.*//' <<< "$SORTED")".jpg -- $MAIL
+                    echo | mutt -s "$(sed 's/ %.*//' <<< "$SORTED")" -i $FOLDER/"$(grep -o '%.*' <<< "$SORTED" | sed 's/%//')" -a $FOLDER/"$(sed 's/ %.*//' <<< "$SORTED")".jpg -- $MAIL
                 done <<< "$SORTED_POSTS"
                 rm titles.txt
             fi
