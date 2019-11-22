@@ -147,6 +147,7 @@ set -x
     if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
 }
 MULTI_FUNC(){
+    unset COLLECTION
     output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
     output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
     exec 3>&1 4>&2
