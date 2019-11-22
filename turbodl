@@ -60,15 +60,17 @@ PARSE(){
 GET_SIZES(){
 set +x
     if [ -e links ]; then rm links; fi
-    if [ $1 == s ]; then echo "$LINKZ" > links; fi
+    if [ "$1" == s ]; then echo "$LINKZ" > links; fi
+    if [ $COLLECTION ]; then LINKZ="$LINKS"; fi
     while IFS= read -r "LINE"; do
-        if [ $1 == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
+        echo $LINE
+        if [ "$1" == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
         SIZE=$(wget -o - -t 5 --timeout=5 --tries=3 --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
         if grep -qE "(G|M)" <<< $SIZE; then
-            if [ $1 == s ]; then sed -i 's|'"$LINE"'|'"$LINE"' - '"${SIZE}B"'|' links; continue; fi
+            if [ "$1" == s ]; then sed -i 's|'"$LINE"'|'"$LINE"' - '"${SIZE}B"'|' links; continue; fi
             echo "$LINE - $SIZE"B >> links
         else
-            if [ $1 == s ]; then sed -i 's|'"$LINE"'|'"$LINE"'|' links; continue; fi
+            if [ "$1" == s ]; then sed -i 's|'"$LINE"'|'"$LINE"'|' links; continue; fi
             echo "$LINE" >> links
         fi
     done <<< "$LINKZ"
@@ -87,6 +89,8 @@ WRITE_TO_FILE(){
     if [ -e links ]; then LINKZ=$(cat links); fi
     if [ "$KEY" ]; then
         echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube-nocookie.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
+    elif [ $COLLECTION ]; then
+        echo -e "<p style=\"text-align: center;\">Genre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     else
         echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     fi
@@ -154,7 +158,7 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "Sistas" ]; then continue; fi
+#if [ "$OUTPUT" != "Step Up - Collection" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
@@ -166,11 +170,13 @@ set -xe
         if grep -q 'null' <<< "$YEAR"; then
             if grep -o "$OUTPUT" whitelist; then
                 YEAR=$(grep -o "$OUTPUT.*#[0-9][0-9][0-9][0-9]" whitelist | sed 's/.*#//')
+            elif grep -qi 'collection' <<< $OUTPUT; then
+                COLLECTION=YES
             else
                 echo "$OUTPUT   -->   year not found" >> $1'today.txt' && continue
             fi
         fi
-        NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ (Tv-Series)//' <<< "$OUTPUT")
+        NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ - [C-c]ollection//; s/ [C-c]ollection//; s/ (Tv-Series)//' <<< "$OUTPUT")
         if [[ $1 == s ]]; then N='tv'; else N='movie'; fi
         TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/$N?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR" || exit)
         if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT   -->   not found" >> $1'today.txt'; continue; fi
@@ -201,60 +207,63 @@ set -xe
             fi
         done
         A=0
-        TRAILERS=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/$N/$TMDB_ID/videos?api_key=0dec8436bb1b7de2bbcb1920ac31111f" || exit)
-        if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
-            while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
-                if [ Trailer == "$(jq -r ".results[$A].type" <<< "$TRAILERS")" ]; then
-                    KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS")
-                    break
-                elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
-                    unset KEY; break
-                else
-                    A=$((A+1)); continue
-                fi
-            done
-        else
-            unset KEY
-        fi
-        if [[ $1 == s ]]; then N='show'; else N='movie'; fi
-        IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb")
-        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   -->   IMDB error getting data" >> $1'today.txt' && continue
-
-        OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
-        grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   -->   OMDB error getting data" >> $1'today.txt' && continue
-        YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
-        PLOT=$(jq -r '.Plot' <<< "$OMDB_API"); grep -q 'N/A' <<< "$PLOT" && PLOT="$OVERVIEW"
-        CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
-        if grep -qiE '(documentary|reality-tv)' <<< "$GENRE"; then if ! grep -q "$OUTPUT" whitelist; then continue; fi; fi
-        RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
-        if [[ $1 == s ]]; then PARSE; fi
-        if [[ $1 == s ]]; then
-            Y=$(sed 's/–/, /' <<< $YEAR); LINKZ=$(cat links)
-        else
-            Y="$YEAR"; LINKZ="$LINKS"
-        fi
-        curl $ARGS "$POSTER" -o "$TITLE".jpg || exit
-        if ! grep -q 'http' <<< "$LINKZ"; then
-            WRITE_TO_FILE $1
-            echo "$OUTPUT   -->   null download links" >> $1'today.txt'
-            continue
-        fi
-        if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
-            if ! grep -q "$OUTPUT" whitelist; then
-                WRITE_TO_FILE $1
-                echo "$OUTPUT   -->   rating/genre not available" >> $1'today.txt'
-                continue
-            #else
-                #grep -q 'N/A' <<< "$GENRE" && GENRE=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT.*#//")
+        if [ ! $COLLECTION ]; then
+            TRAILERS=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/$N/$TMDB_ID/videos?api_key=0dec8436bb1b7de2bbcb1920ac31111f" || exit)
+            if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
+                while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
+                    if [ Trailer == "$(jq -r ".results[$A].type" <<< "$TRAILERS")" ]; then
+                        KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS")
+                        break
+                    elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
+                        unset KEY; break
+                    else
+                        A=$((A+1)); continue
+                    fi
+                done
+            else
+                unset KEY
+            fi
+            if [[ $1 == s ]]; then N='show'; else N='movie'; fi
+            IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb")
+            ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   -->   IMDB error getting data" >> $1'today.txt' && continue
+            OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
+            grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   -->   OMDB error getting data" >> $1'today.txt' && continue
+            YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
+            PLOT=$(jq -r '.Plot' <<< "$OMDB_API"); grep -q 'N/A' <<< "$PLOT" && PLOT="$OVERVIEW"
+            CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
+            if grep -qiE '(documentary|reality-tv)' <<< "$GENRE"; then if ! grep -q "$OUTPUT" whitelist; then continue; fi; fi
+            RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
+            if [[ $1 == s ]]; then PARSE; fi
+            if [[ $1 == s ]]; then
+                Y=$(sed 's/–/, /' <<< $YEAR); LINKZ=$(cat links)
+            else
+                Y="$YEAR"; LINKZ="$LINKS"
             fi
         else
-            if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
-                if [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && ! grep -q "$OUTPUT" whitelist; then
-                    rm "$TITLE".jpg; continue
+            TITLE="$NAME - Collection"; GENRE='Collection'; unset KEY
+        fi
+        curl $ARGS "$POSTER" -o "$TITLE".jpg || exit
+        if [ ! $COLLECTION ]; then
+            if ! grep -q 'http' <<< "$LINKZ"; then
+                WRITE_TO_FILE $1
+                echo "$OUTPUT   -->   null download links" >> $1'today.txt'
+                continue
+            fi
+            if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
+                if ! grep -q "$OUTPUT" whitelist; then
+                    WRITE_TO_FILE $1
+                    echo "$OUTPUT   -->   rating/genre not available" >> $1'today.txt'
+                    continue
                 fi
             else
-                if [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && ! grep -q "$OUTPUT" whitelist; then
-                    rm "$TITLE".jpg; continue
+                if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
+                    if [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && ! grep -q "$OUTPUT" whitelist; then
+                        rm "$TITLE".jpg; continue
+                    fi
+                else
+                    if [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && ! grep -q "$OUTPUT" whitelist; then
+                        rm "$TITLE".jpg; continue
+                    fi
                 fi
             fi
         fi
@@ -284,6 +293,7 @@ set -xe
             echo "$OUTPUT" >> $1'today.txt' && sed -i "1s/^/$TITLE\\n/" $LIST
         fi
         echo "$TITLE #$OUTPUT".txt >> titles.txt
+        unset COLLECTION
     done <<< "$output"
     if [ ! -e $1'today.txt' ]; then
         echo 'null posts'
