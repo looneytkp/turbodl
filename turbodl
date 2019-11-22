@@ -89,8 +89,6 @@ WRITE_TO_FILE(){
     if [ -e links ]; then LINKZ=$(cat links); fi
     if [ "$KEY" ]; then
         echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
-    #elif [ $COLLECTION ]; then
-    #    echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     else
         echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     fi
@@ -177,7 +175,7 @@ set -xe
                 echo "$OUTPUT   -->   year not found" >> $1'today.txt' && continue
             fi
         fi
-        NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ - [C-c]ollection//; s/ [C-c]ollection//; s/ (Tv-Series)//' <<< "$OUTPUT")
+        NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ - Collection//; s/ Collection//; s/ (Tv-Series)//' <<< "$OUTPUT")
         if [[ $1 == s ]]; then N='tv'; else N='movie'; fi
         TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/$N?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR" || exit)
         if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT   -->   not found" >> $1'today.txt'; continue; fi
