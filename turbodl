@@ -246,7 +246,10 @@ set -xe
         else
             Y="$YEAR"; LINKZ="$LINKS"
         fi
-        curl $ARGS "$POSTER" -o "$TITLE".jpg || exit
+        curl $ARGS "$POSTER" -o "$TITLE".jpg || if [ ! -e "$TITLE.jpg" ]; then
+            echo "$OUTPUT   -->   img not found" >>  $1'today.txt'
+            continue
+        fi
         if [ ! $COLLECTION ]; then
             if ! grep -q 'http' <<< "$LINKZ"; then
                 WRITE_TO_FILE $1
