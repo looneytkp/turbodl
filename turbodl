@@ -79,7 +79,7 @@ set -x
 WRITE_TO_FILE(){
     if [[ $1 == S ]]; then
         FOLDER='series'
-        GET_SIZES s
+        #GET_SIZES s
     elif [[ $1 == M ]]; then
         FOLDER='movies'
         GET_SIZES
