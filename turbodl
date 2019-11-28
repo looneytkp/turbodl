@@ -319,7 +319,7 @@ set -xe
                 fi
                 if [ $1 == s ]; then FOLDER='series'; else FOLDER='movies'; fi
                 while IFS= read -r SORTED; do
-                    echo | mutt -s "$(sed "s/ %.*//" <<< "$SORTED")" -i $FOLDER/"$(grep -o '%.*' <<< "$SORTED" | sed 's/%//')" -a $FOLDER/"$(sed 's/ %.*//' <<< "$SORTED")".jpg -- $MAIL
+                    echo | mutt -s "$(sed "s/9-1-1/911/g; s/ %.*//" <<< "$SORTED")" -i $FOLDER/"$(grep -o '%.*' <<< "$SORTED" | sed 's/%//')" -a $FOLDER/"$(sed 's/ %.*//' <<< "$SORTED")".jpg -- $MAIL
                 done <<< "$SORTED_POSTS"
                 rm titles.txt
             fi
