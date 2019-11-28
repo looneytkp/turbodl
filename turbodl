@@ -231,7 +231,7 @@ set -xe
         OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
         grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   -->   OMDB error getting data" >> $1'today.txt' && continue
         if [ $COLLECTION ]; then
-            TITLE="$NAME - Collection"; GENRE='Collection'; unset KEY
+            TITLE="$NAME – Collection"; GENRE='Collection'; unset KEY
             CAST=N/A; RATING=N/A; YEAR=''
         else
             YEAR=$(jq -r '.Year' <<< $OMDB_API)
@@ -319,7 +319,7 @@ set -xe
                 fi
                 if [ $1 == s ]; then FOLDER='series'; else FOLDER='movies'; fi
                 while IFS= read -r SORTED; do
-                    echo | mutt -s "$(sed "s/-/&#8211;/g; s/ %.*//" <<< "$SORTED")" -i $FOLDER/"$(grep -o '%.*' <<< "$SORTED" | sed 's/%//')" -a $FOLDER/"$(sed 's/ %.*//' <<< "$SORTED")".jpg -- $MAIL
+                    echo | mutt -s "$(sed "s/ %.*//" <<< "$SORTED")" -i $FOLDER/"$(grep -o '%.*' <<< "$SORTED" | sed 's/%//')" -a $FOLDER/"$(sed 's/ %.*//' <<< "$SORTED")".jpg -- $MAIL
                 done <<< "$SORTED_POSTS"
                 rm titles.txt
             fi
