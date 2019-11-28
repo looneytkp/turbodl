@@ -158,6 +158,7 @@ MULTI_FUNC(){
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
 #if [ "$OUTPUT" != "Spider-Man - Collection" ]; then continue; fi
+if [ "$OUTPUT" == "Pirates of the Carribean - Collection" ]; then OUTPUT='Pirates of the Caribbean - Collection'; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
