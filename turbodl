@@ -157,7 +157,7 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-if [ "$OUTPUT" != "Pirates of the Carribean - Collection" ]; then continue; fi
+#if [ "$OUTPUT" != "Pirates of the Carribean - Collection" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
