@@ -159,7 +159,7 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-if [ "$OUTPUT" != "NCIS Los Angeles" ]; then continue; fi
+#if [ "$OUTPUT" != "NCIS Los Angeles" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
@@ -303,6 +303,7 @@ if [ "$OUTPUT" == "Pirates of the Carribean - Collection" ]; then NAME='Pirates 
         else
             echo "$OUTPUT" >> $1'today.txt' && sed -i "1s/^/$TITLE\\n/" $LIST
         fi
+        if [ "$TITLE" == "9-1-1" ]; then TITLE='911'; fi
         echo "$TITLE %$OUTPUT".txt >> titles.txt
         unset COLLECTION
     done <<< "$output"
@@ -322,7 +323,7 @@ if [ "$OUTPUT" == "Pirates of the Carribean - Collection" ]; then NAME='Pirates 
                 fi
                 if [ $1 == s ]; then FOLDER='series'; else FOLDER='movies'; fi
                 while IFS= read -r SORTED; do
-                    echo | mutt -s "$(sed "s/9-1-1/911/g; s/ %.*//" <<< "$SORTED")" -i $FOLDER/"$(grep -o '%.*' <<< "$SORTED" | sed 's/%//')" -a $FOLDER/"$(sed 's/ %.*//' <<< "$SORTED")".jpg -- $MAIL
+                    echo | mutt -s "$(sed "s/ %.*//" <<< "$SORTED")" -i $FOLDER/"$(grep -o '%.*' <<< "$SORTED" | sed 's/%//')" -a $FOLDER/"$(sed 's/ %.*//' <<< "$SORTED")".jpg -- $MAIL
                 done <<< "$SORTED_POSTS"
                 rm titles.txt
             fi
@@ -387,9 +388,9 @@ set +xe
             URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit)
             MULTI_FUNC s;;
     *)
-        if grep -q movies <<< "$1"; then
+        if grep -qi movies <<< "$1"; then
             URL=$(curl $ARGS "$1" || exit); MULTI_FUNC m
-        elif grep -q SERIES <<< "$1"; then
+        elif grep -qi SERIES <<< "$1"; then
             URL=$(curl $ARGS "$1" || exit); MULTI_FUNC s
         else
             echo ":: invalid: $1"
