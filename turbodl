@@ -14,6 +14,7 @@ PARSE(){
         if [ $D -gt 9 ]; then
             if grep -qiE "s$D.*(480p|720p|1080p)" <<< "$LINKS"; then
                 if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
+                grep -i "s$D" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
                 if grep -qi "s$D.*480p" <<< "$LINKS"; then
                     echo -e "\\n480p\\n$(grep -i "s$D.*480p" <<< "$LINKS")" >> links
                 fi
@@ -35,6 +36,7 @@ PARSE(){
         else
             if grep -qiE "s0$D.*(480p|720p|1080p)" <<< "$LINKS"; then
                 if ! grep -qi "Season 0$D" links; then echo -e "<h1>Season 0$D</h1>" >> links; fi
+                grep -i "s0$D" <<< "$LINKS" | grep -ivE '(480p|720p|1080p|2160p)' >> links || true
                 if grep -qi "s0$D.*480p" <<< "$LINKS"; then
                     echo -e "\\n480p\\n$(grep -i "s0$D.*480p" <<< "$LINKS")" >> links
                 fi
@@ -144,7 +146,7 @@ set -x
         if [ "$USER" != persie ]; then bash ~/turbodl/tmp -a; fi
         SAME=1 && export SAME
     fi
-    if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
+    #if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
 }
 MULTI_FUNC(){
     output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
@@ -157,7 +159,7 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "Pirates of the Carribean - Collection" ]; then continue; fi
+if [ "$OUTPUT" != "NCIS Los Angeles" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
@@ -228,9 +230,9 @@ if [ "$OUTPUT" == "Pirates of the Carribean - Collection" ]; then NAME='Pirates 
         fi
         if [[ $1 == s ]]; then N='show'; else N='movie'; fi
         IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb")
-        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   -->   null trakt API response" >> $1'today.txt' && continue
+        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   -->   null trakt API response" >> $1'today.txt' && if [ $USER != persie ]; then echo "$OUTPUT;" >> blacklist; git stash; else (cd ~/git/turbodl; echo "$OUTPUT;" >> blacklist; git add blacklist; git commit -m 'updated blacklist'); fi && continue
         OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
-        grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   -->   null OMDB API response" >> $1'today.txt' && continue
+        grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   -->   null OMDB API response" >> $1'today.txt' && if [ $USER != persie ]; then echo "$OUTPUT;" >> blacklist; git stash; else (cd ~/git/turbodl; echo "$OUTPUT;" >> blacklist; git add blacklist; git commit -m 'updated blacklist'); fi && continue
         if [ $COLLECTION ]; then
             TITLE="$NAME – Collection"; GENRE='Collection'; unset KEY
             CAST=N/A; RATING=N/A; YEAR=''
