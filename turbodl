@@ -353,7 +353,7 @@ case $1 in
     '')
         echo ':: no arguments, nothing to do';;
     -g)
-        if [ "$USER" == '' ]; then cd ~/turbodl/ && git pull; fi
+        if [ "$USER" == '' ]; then (cd ~/turbodl/ && git pull); fi
     -m)
         if [ "$USER" != persie ]; then
             COUNT=1; COUNT1=0
