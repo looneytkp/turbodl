@@ -370,7 +370,8 @@ set +xe
         MULTI_FUNC s;;
     -M|-S|-A)
         UPDATE_POSTS_DATABASE "$1"
-        if [ "$USER" == '' ]; then echo | mutt -s 'turbodl database updated' -- persie@turbodl.xyz; fi;;
+        #if [ "$USER" == '' ]; then echo | mutt -s 'turbodl database updated' -- persie@turbodl.xyz; fi
+        ;;
     -l)
         PARAMS=$(($#-1))
         if [ "$PARAMS" == 0 ]; then echo ':: no URLs'; exit; fi
