@@ -370,7 +370,8 @@ set +xe
         URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit)
         MULTI_FUNC s;;
     -M|-S|-A)
-        UPDATE_POSTS_DATABASE "$1";;
+        UPDATE_POSTS_DATABASE "$1"
+        echo | mutt -s 'turbodl database updated' -- persie@turbodl.xyz;;
     *)
         if grep -qi movies <<< "$1"; then
             URL=$(curl $ARGS "$1" || exit); MULTI_FUNC m
