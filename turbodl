@@ -1,18 +1,8 @@
 #!/bin/env bash
-DIR=~/.turbodl
-ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s'
-PIXELS=(480p 720p 1080p 2160p)
-if [ ! -d "$DIR" ]; then
-    mkdir -p "$DIR"/movies "$DIR"/series $DIR/errors; cd "$DIR"
-else
-    cd "$DIR"
-    mkdir -p movies series errors
-    rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
-fi
 BLACKLIST(){
     if [ "$USER" == '' ]; then
         echo "$OUTPUT;" >> blacklist; git stash
-    elif [ "$USER" == 'persie' ]
+    elif [ "$USER" == 'persie' ]; then
         (cd ~/git/turbodl; echo "$OUTPUT;" >> blacklist; git add blacklist; git commit -m 'updated blacklist')
     fi
 }
@@ -166,6 +156,9 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
+        if [ "$2" ]; then
+            if ! grep -q "$OUTPUT" pattern; then continue 2; fi
+        fi
 #if [ "$OUTPUT" != "Hawaii Five-0" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
@@ -345,12 +338,18 @@ if [ "$OUTPUT" == 'Magum P.I' ]; then NAME='Magum PI'; fi
     fi
     echo "$(date)"
 }
+DIR=~/.turbodl; ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s'
+PIXELS=(480p 720p 1080p 2160p)
+if [ ! -d "$DIR" ]; then
+    mkdir -p "$DIR"/movies "$DIR"/series $DIR/errors; cd "$DIR"
+else
+    cd "$DIR"; mkdir -p movies series errors
+    rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
+fi
 if [ "$USER" == '' ]; then
-    cat ~/turbodl/whitelist > ~/.turbodl/whitelist
-    cat ~/turbodl/blacklist > ~/.turbodl/blacklist
+    cat ~/turbodl/whitelist > ~/.turbodl/whitelist; cat ~/turbodl/blacklist > ~/.turbodl/blacklist
 elif [ "$USER" == 'persie' ]; then
-    cat ~/git/turbodl/whitelist > ~/.turbodl/whitelist
-    cat ~/git/turbodl/blacklist > ~/.turbodl/blacklist
+    cat ~/git/turbodl/whitelist > ~/.turbodl/whitelist; cat ~/git/turbodl/blacklist > ~/.turbodl/blacklist
 fi
 case $1 in
     '')
@@ -371,7 +370,27 @@ set +xe
         MULTI_FUNC s;;
     -M|-S|-A)
         UPDATE_POSTS_DATABASE "$1"
-        echo | mutt -s 'turbodl database updated' -- persie@turbodl.xyz;;
+        if [ "$USER" == '' ]; then echo | mutt -s 'turbodl database updated' -- persie@turbodl.xyz; fi;;
+    -l)
+        PARAMS=$(($#-1))
+        if [ "$PARAMS" == 0 ]; then echo ':: no URLs'; exit; fi
+        for POS_PARAM; do
+            if [ "$POS_PARAM" == -l ]; then
+                continue
+            elif grep -q ^'%' <<< "$POS_PARAM"; then
+                WORD=$(sed 's/%//' <<< "$POS_PARAM")
+                grep -qiE '([a-z]|[0-9])' <<< "$WORD" && echo "$WORD" >> pattern || continue
+            elif grep -q 'http' <<< "$POS_PARAM"; then
+                echo "$POS_PARAM" >> url
+            fi
+        done
+        while IFS= read -r "OUTPUT"; do
+            if grep -qi movies <<< "$OUTPUT"; then
+                URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC m o
+            fi
+        done < url
+        if [ -e url ]; then rm url; fi; if [ -e pattern ]; then rm pattern; fi
+        ;;
     *)
         if grep -qi movies <<< "$1"; then
             URL=$(curl $ARGS "$1" || exit); MULTI_FUNC m
