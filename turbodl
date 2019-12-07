@@ -10,9 +10,9 @@ else
     rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
 fi
 BLACKLIST(){
-    if [ $USER != persie ]; then
+    if [ "$USER" == '' ]; then
         echo "$OUTPUT;" >> blacklist; git stash
-    else
+    elif [ "$USER" == 'persie' ]
         (cd ~/git/turbodl; echo "$OUTPUT;" >> blacklist; git add blacklist; git commit -m 'updated blacklist')
     fi
 }
@@ -48,11 +48,13 @@ set +x
             echo "$LINE" >> links
         fi
     done <<< "$LINKZ"
-    grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
-    for PIXEL in "${PIXELS[@]}"; do
-        if grep -q "$PIXEL" links; then echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links)" >> links2; fi
-    done
-    if [ -e links2 ]; then mv links2 links; fi
+    if [ "$1" == m ]; then
+        grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
+        for PIXEL in "${PIXELS[@]}"; do
+            if grep -q "$PIXEL" links; then echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links)" >> links2; fi
+        done
+        if [ -e links2 ]; then mv links2 links; fi
+    fi
 set -x
 }
 UPDATE_POSTS_DATABASE(){
@@ -65,8 +67,7 @@ UPDATE_POSTS_DATABASE(){
             while [ $COUNT1 -lt 100 ]; do
                 title=$(jq -r ".[$COUNT1].title.rendered" <<< "$POSTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
                 if [ "$title" == null ]; then break; fi
-                echo "$title" >> $FILE
-                COUNT1=$((COUNT1+1))
+                echo "$title" >> $FILE; COUNT1=$((COUNT1+1))
             done
             COUNT1=0; COUNT=$((COUNT+1))
         done
@@ -88,7 +89,7 @@ WRITE_TO_FILE(){
         #GET_SIZES s
     elif [[ $1 == M ]]; then
         FOLDER='movies'
-        GET_SIZES
+        GET_SIZES m
     else
         FOLDER=errors
     fi
@@ -101,6 +102,10 @@ WRITE_TO_FILE(){
     mv "$TITLE".jpg $FOLDER/"$TITLE".jpg
 }
 CROSS_CHECK(){
+    DELETE_WP_POST(){
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
+    }
     A=0
     WP_RESULTS=$(curl $ARGS -X GET "https://$SITE/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=$NUM")
     while [[ "$A" != $(jq length <<< "$WP_RESULTS") ]]; do
@@ -113,19 +118,17 @@ CROSS_CHECK(){
                 if cmp -s one two; then
                     SAME=1 && export SAME; break
                 else
-                    if [ "$USER" != persie ]; then
+                    if [ "$USER" == '' ]; then
 set +x
-                        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
-                        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
+                        DELETE_WP_POST
 set -x
                     fi
                     echo "deleted $OUTPUT"
                 fi
             else
-                if [ "$USER" != persie ]; then
+                if [ "$USER" == '' ]; then
 set +x
-                    curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
-                    curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
+                    DELETE_WP_POST
 set -x
                 fi
                 sed -i "/$TITLE/d" $LIST
@@ -139,7 +142,7 @@ set -x
                     NUM=20; CROSS_CHECK $1
                 else
                     echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-                    if [ "$USER" != persie ]; then UPDATE_POSTS_DATABASE -A; fi
+                    if [ "$USER" == '' ]; then UPDATE_POSTS_DATABASE -A; fi
                     SAME=1 && export SAME && break
                 fi
             fi
@@ -147,7 +150,7 @@ set -x
     done
     if [ $(jq length <<< "$WP_RESULTS") == 0 ]; then
         echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-        if [ "$USER" != persie ]; then bash ~/turbodl/tmp -a; fi
+        if [ "$USER" == '' ]; then bash ~/turbodl/tmp -a; fi
         SAME=1 && export SAME
     fi
     if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
@@ -323,7 +326,7 @@ if [ "$OUTPUT" == 'Magum P.I' ]; then NAME='Magum PI'; fi
     else
         if [ $1 == s ]; then TYPE='Series'; else TYPE='Movies'; fi
         sed -i "1s/^/\\n$TYPE - $(date)\\n-------------------------------------\\n/" $1'today.txt'
-        if [ "$USER" != persie ]; then
+        if [ "$USER" == '' ]; then
             if [ -e titles.txt ]; then
                 echo -e "\\n---sorting randomly---"
                 SORTED_POSTS=$(sort -Rr < titles.txt)
@@ -342,10 +345,10 @@ if [ "$OUTPUT" == 'Magum P.I' ]; then NAME='Magum PI'; fi
     fi
     echo "$(date)"
 }
-if [ "$USER" != persie ]; then
+if [ "$USER" == '' ]; then
     cat ~/turbodl/whitelist > ~/.turbodl/whitelist
     cat ~/turbodl/blacklist > ~/.turbodl/blacklist
-else
+elif [ "$USER" == 'persie' ]; then
     cat ~/git/turbodl/whitelist > ~/.turbodl/whitelist
     cat ~/git/turbodl/blacklist > ~/.turbodl/blacklist
 fi
@@ -355,51 +358,17 @@ case $1 in
     -g)
         if [ "$USER" == '' ]; then (cd ~/turbodl/ && git pull); fi;;
     -m)
-        if [ "$USER" != persie ]; then
-            COUNT=1; COUNT1=0
-            WP=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100" || exit)
-            while [ $COUNT1 -lt 100 ]; do
-                title=$(jq -r ".[$COUNT1].title.rendered" <<< "$WP" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
-                grep -q "$title" movie_list.txt || echo "$title" >> movie_list.txt
-                COUNT1=$((COUNT1+1))
-            done
-        fi
         URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit)
         MULTI_FUNC m;;
     -s)
-        if [ "$USER" != persie ]; then
-            COUNT=1; COUNT1=0
-            WP=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100" || exit)
-            while [ $COUNT1 -lt 100 ]; do
-                title=$(jq -r ".[$COUNT1].title.rendered" <<< "$WP" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
-                grep -q "$title" series_list.txt || echo "$title" >> series_list.txt
-                COUNT1=$((COUNT1+1))
-            done
-        fi
         URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit)
         MULTI_FUNC s;;
     -a)
-        if [ "$USER" != persie ]; then
-            COUNT=1; COUNT1=0
-            WP=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100" || exit)
-                while [ $COUNT1 -lt 100 ]; do
-                    title=$(jq -r ".[$COUNT1].title.rendered" <<< "$WP" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
-                    grep -q "$title" movie_list.txt || echo "$title" >> movie_list.txt
-                    COUNT1=$((COUNT1+1))
-                done
-                COUNT=1; COUNT1=0
-                WP=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?page=$COUNT&per_page=100" || exit)
-                while [ $COUNT1 -lt 100 ]; do
-                    title=$(jq -r ".[$COUNT1].title.rendered" <<< "$WP" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
-                    grep -q "$title" series_list.txt || echo "$title" >> series_list.txt
-                    COUNT1=$((COUNT1+1))
-                done
-            fi
-            URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit)
-            MULTI_FUNC m
+        URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit)
+        MULTI_FUNC m
 set +xe
-            URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit)
-            MULTI_FUNC s;;
+        URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit)
+        MULTI_FUNC s;;
     -M|-S|-A)
         UPDATE_POSTS_DATABASE "$1";;
     *)
