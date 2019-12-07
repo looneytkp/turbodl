@@ -1,6 +1,7 @@
 #!/bin/env bash
 DIR=~/.turbodl
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s'
+PIXELS=(480p 720p 1080p 2160p)
 if [ ! -d "$DIR" ]; then
     mkdir -p "$DIR"/movies "$DIR"/series $DIR/errors; cd "$DIR"
 else
@@ -8,56 +9,28 @@ else
     mkdir -p movies series errors
     rm *s/* *today.txt titles.txt *logs.txt links 2> /dev/null
 fi
+BLACKLIST(){
+    if [ $USER != persie ]; then
+        echo "$OUTPUT;" >> blacklist; git stash
+    else
+        (cd ~/git/turbodl; echo "$OUTPUT;" >> blacklist; git add blacklist; git commit -m 'updated blacklist')
+    fi
+}
 PARSE(){
+set +x
     touch links; D=1
     while true; do
-        if [ $D -gt 9 ]; then
-            if grep -qiE "s$D.*(480p|720p|1080p)" <<< "$LINKS"; then
-                if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
-                grep -i "s$D" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
-                if grep -qi "s$D.*480p" <<< "$LINKS"; then
-                    echo -e "\\n480p\\n$(grep -i "s$D.*480p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s$D.*720p" <<< "$LINKS"; then
-                    echo -e "\\n720p\\n$(grep -i "s$D.*720p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s$D.*1080p" <<< "$LINKS"; then
-                    echo -e "\\n1080p\\n$(grep -i "s$D.*1080p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s$D.*2160p" <<< "$LINKS"; then
-                    echo -e "\\n2160p\\n$(grep -i "s$D.*2160p" <<< "$LINKS")" >> links
-                fi
-            elif grep -qi "s$D" <<< "$LINKS"; then
-                if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
-                echo -e "\\n$(grep -i "s$D" <<< "$LINKS")" >> links
-            else
-                break
-            fi
-        else
-            if grep -qiE "s0$D.*(480p|720p|1080p)" <<< "$LINKS"; then
-                if ! grep -qi "Season 0$D" links; then echo -e "<h1>Season 0$D</h1>" >> links; fi
-                grep -i "s0$D" <<< "$LINKS" | grep -ivE '(480p|720p|1080p|2160p)' >> links || true
-                if grep -qi "s0$D.*480p" <<< "$LINKS"; then
-                    echo -e "\\n480p\\n$(grep -i "s0$D.*480p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s0$D.*720p" <<< "$LINKS"; then
-                    echo -e "\\n720p\\n$(grep -i "s0$D.*720p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s0$D.*1080p" <<< "$LINKS"; then
-                    echo -e "\\n1080p\\n$(grep -i "s0$D.*1080p" <<< "$LINKS")" >> links
-                fi
-                if grep -qi "s0$D.*2160p" <<< "$LINKS"; then
-                    echo -e "\\n2160p\\n$(grep -i "s0$D.*2160p" <<< "$LINKS")" >> links
-                fi
-            elif grep -qi "s0$D" <<< "$LINKS"; then
-                if ! grep -qi "Season 0$D" links; then echo -e "<h1>Season 0$D</h1>" >> links; fi
-                echo -e "\\n$(grep -i "s0$D" <<< "$LINKS")" >> links
-            else
-                break
-            fi
-        fi
+        if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
+        if ! grep -q "$TAG" <<< "$LINKS"; then break; fi
+        if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
+        for PIXEL in "${PIXELS[@]}"; do
+            grep -i "$TAG" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
+            grep -qi "$TAG.*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -i "$TAG.*$PIXEL" <<< "$LINKS")" >> links
+            continue
+        done
         D=$((D+1))
     done
+set -x
 }
 GET_SIZES(){
 set +x
@@ -65,7 +38,6 @@ set +x
     if [ "$1" == s ]; then echo "$LINKZ" > links; fi
     if [ $COLLECTION ]; then LINKZ="$LINKS"; fi
     while IFS= read -r "LINE"; do
-        echo $LINE
         if [ "$1" == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
         SIZE=$(wget -o - -t 5 --timeout=5 --tries=3 --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
         if grep -qE "(G|M)" <<< $SIZE; then
@@ -76,7 +48,39 @@ set +x
             echo "$LINE" >> links
         fi
     done <<< "$LINKZ"
+    grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
+    for PIXEL in "${PIXELS[@]}"; do
+        if grep -q "$PIXEL" links; then echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links)" >> links2; fi
+    done
+    if [ -e links2 ]; then mv links2 links; fi
 set -x
+}
+UPDATE_POSTS_DATABASE(){
+    RUN(){
+        COUNT=1; COUNT1=0
+        echo '---script starts above this---' > $FILE
+        while true; do
+            POSTS=$(curl -s -X GET "$URL=$COUNT&per_page=100")
+            if grep -q 'rest_post_invalid_page_number' <<< "$POSTS"; then break; fi
+            while [ $COUNT1 -lt 100 ]; do
+                title=$(jq -r ".[$COUNT1].title.rendered" <<< "$POSTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")
+                if [ "$title" == null ]; then break; fi
+                echo "$title" >> $FILE
+                COUNT1=$((COUNT1+1))
+            done
+            COUNT1=0; COUNT=$((COUNT+1))
+        done
+    }
+    case "$1" in
+        -A) FILE=~/.turbodl/movie_list.txt; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
+            printf ':: updating movie database...'; RUN; echo 'done!'
+            FILE=~/.turbodl/series_list.txt; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
+            printf ':: updating series database...'; RUN; echo 'done!';;
+        -M) FILE=~/.turbodl/movie_list.txt; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
+            printf ':: updating movie database...'; RUN; echo 'done!';;
+        -S) FILE=~/.turbodl/series_list.txt; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
+            printf ':: updating series database...'; RUN; echo 'done!';;
+    esac
 }
 WRITE_TO_FILE(){
     if [[ $1 == S ]]; then
@@ -135,7 +139,7 @@ set -x
                     NUM=20; CROSS_CHECK $1
                 else
                     echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-                    if [ "$USER" != persie ]; then bash ~/turbodl/tmp -a; fi
+                    if [ "$USER" != persie ]; then UPDATE_POSTS_DATABASE -A; fi
                     SAME=1 && export SAME && break
                 fi
             fi
@@ -159,7 +163,7 @@ MULTI_FUNC(){
         if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-#if [ "$OUTPUT" != "Mom" ]; then continue; fi
+#if [ "$OUTPUT" != "Hawaii Five-0" ]; then continue; fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
@@ -181,7 +185,7 @@ set -xe
         if [ "$YEAR" -lt '2007' ]; then echo "$OUTPUT   -->   year less than 2007"; continue; fi
         NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ - Collection//; s/ Collection//; s/ (Tv-Series)//' <<< "$OUTPUT")
         if [[ $1 == s ]]; then N='tv'; else N='movie'; fi
-#if [ "$OUTPUT" == "Pirates of the Carribean - Collection" ]; then NAME='Pirates of the Caribbean'; fi
+if [ "$OUTPUT" == "Pirates of the Carribean - Collection" ]; then NAME='Pirates of the Caribbean'; fi
 if [ "$OUTPUT" == 'Magum P.I' ]; then NAME='Magum PI'; fi
         TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/$N?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR" || exit)
         if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT   -->   not found" >> $1'today.txt'; continue; fi
@@ -231,16 +235,14 @@ if [ "$OUTPUT" == 'Magum P.I' ]; then NAME='Magum PI'; fi
         fi
         if [[ $1 == s ]]; then N='show'; else N='movie'; fi
         IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb")
-        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   -->   null trakt API response" >> $1'today.txt' && XX=YES
+        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   -->   false trakt API response" >> $1'today.txt' && XX=YES
         if [ "$XX" ]; then
-            if [ $USER != persie ]; then echo "$OUTPUT;" >> blacklist; git stash; else (cd ~/git/turbodl; echo "$OUTPUT;" >> blacklist; git add blacklist; git commit -m 'updated blacklist'); fi
-            unset XX; continue
+            BLACKLIST; unset XX; continue
         fi
         OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
-        grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   -->   null OMDB API response" >> $1'today.txt' && XX=YES
+        grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   -->   false OMDB API response" >> $1'today.txt' && XX=YES
         if [ "$XX" ]; then
-            if [ $USER != persie ]; then echo "$OUTPUT;" >> blacklist; git stash; else (cd ~/git/turbodl; echo "$OUTPUT;" >> blacklist; git add blacklist; git commit -m 'updated blacklist'); fi
-            unset XX; continue
+            BLACKLIST; unset XX; continue
         fi
         if [ $COLLECTION ]; then
             TITLE="$NAME – Collection"; GENRE='Collection'; unset KEY
@@ -261,18 +263,18 @@ if [ "$OUTPUT" == 'Magum P.I' ]; then NAME='Magum PI'; fi
         fi
         curl $ARGS "$POSTER" -o "$TITLE".jpg || if [ ! -e "$TITLE.jpg" ]; then
             echo "$OUTPUT   -->   img not found" >>  $1'today.txt'
-            continue
+            BLACKLIST; continue
         fi
         if [ ! $COLLECTION ]; then
             if ! grep -q 'http' <<< "$LINKZ"; then
                 WRITE_TO_FILE $1
-                echo "$OUTPUT   -->   null download links" >> $1'today.txt'
-                continue
+                echo "$OUTPUT   -->   no links" >> $1'today.txt'
+                BLACKLIST; continue
             fi
             if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
                 if ! grep -q "$OUTPUT" whitelist; then
                     WRITE_TO_FILE $1
-                    echo "$OUTPUT   -->   rating/genre unavailable" >> $1'today.txt'
+                    echo "$OUTPUT   -->   rating/genre N/A" >> $1'today.txt'
                     continue
                 fi
             else
@@ -302,7 +304,7 @@ if [ "$OUTPUT" == 'Magum P.I' ]; then NAME='Magum PI'; fi
         if [ $(identify -format "%w" "$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" "$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -lt 700 ]; then
             if ! grep -q "$OUTPUT" whitelist; then
                 WRITE_TO_FILE $1
-                echo "$OUTPUT   -->   invalid image height/weight dimension" >> $1'today.txt'
+                echo "$OUTPUT   -->   image dimension error" >> $1'today.txt'
                 continue
             fi
         fi
@@ -396,6 +398,8 @@ case $1 in
 set +xe
             URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit)
             MULTI_FUNC s;;
+    -M|-S|-A)
+        UPDATE_POSTS_DATABASE "$1";;
     *)
         if grep -qi movies <<< "$1"; then
             URL=$(curl $ARGS "$1" || exit); MULTI_FUNC m
