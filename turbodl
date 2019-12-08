@@ -137,7 +137,7 @@ set -xe
     done
     if [ $(jq length <<< "$WP_RESULTS") == 0 ]; then
         echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-        if [ "$USER" == '' ]; then bash ~/turbodl/tmp -a; fi
+        if [ "$USER" == '' ]; then UPDATE_POSTS_DATABASE -A; fi
         SAME=1 && export SAME
     fi
     if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
