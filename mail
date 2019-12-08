@@ -18,15 +18,15 @@ if [ -e stoday.txt ]; then
 fi
 if [ ! -z "$(ls -A errors)" ]; then
     if [ -e text.txt ]; then
-        echo | mutt -s 'turbodlbot' -i text.txt -a errors/* *logs.txt -- persie@turbodl.xyz info@turbodl.xyz
+        echo | mutt -s 'turbodlbot' -i text.txt -a errors/* *logs.txt *list -- persie@turbodl.xyz info@turbodl.xyz
     else
-        echo | mutt -s 'turbodlbot | logs' -a errors/* *logs.txt -- persie@turbodl.xyz
+        echo | mutt -s 'turbodlbot | logs' -a errors/* *logs.txt *list -- persie@turbodl.xyz
     fi
 else
     if [ -e text.txt ]; then
-        echo | mutt -s 'turbodlbot' -i text.txt -a *logs.txt -- persie@turbodl.xyz info@turbodl.xyz
+        echo | mutt -s 'turbodlbot' -i text.txt -a *logs.txt *list -- persie@turbodl.xyz info@turbodl.xyz
     else
-        echo | mutt -s 'turbodlbot | logs' -a *logs.txt -- persie@turbodl.xyz
+        echo | mutt -s 'turbodlbot | logs' -a *logs.txt *list -- persie@turbodl.xyz
     fi
 fi
 rm -rf *today.txt *logs.txt text.txt 2> /dev/null
