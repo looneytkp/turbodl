@@ -25,7 +25,7 @@ set -xe
 GET_SIZES(){
 set +xe
     if [ -e links ]; then rm links; fi
-    if [ "$1" == s ]; then return; echo "$LINKZ" > links; fi
+    if [ "$1" == s ]; then echo "$LINKZ" > links; fi
     if [ $COLLECTION ]; then LINKZ="$LINKS"; fi
     while IFS= read -r "LINE"; do
         if [ "$1" == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
@@ -38,13 +38,11 @@ set +xe
             echo "$LINE" >> links
         fi
     done <<< "$LINKZ"
-    if [ "$1" == m ]; then
-        grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
-        for PIXEL in "${PIXELS[@]}"; do
-            if grep -q "$PIXEL" links; then echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links)" >> links2; fi
-        done
-        if [ -e links2 ]; then mv links2 links; fi
-    fi
+    grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
+    for PIXEL in "${PIXELS[@]}"; do
+        if grep -q "$PIXEL" links; then echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links)" >> links2; fi
+    done
+    if [ -e links2 ]; then mv links2 links; fi
 set -xe
 }
 UPDATE_POSTS_DATABASE(){
@@ -67,9 +65,9 @@ UPDATE_POSTS_DATABASE(){
             printf ':: updating movie database...'; RUN; echo 'done!'
             FILE=~/.turbodl/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
             printf ':: updating series database...'; RUN; echo 'done!';;
-        -M) FILE=~/.turbodl/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
+        -M|-m) FILE=~/.turbodl/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
             printf ':: updating movie database...'; RUN; echo 'done!';;
-        -S) FILE=~/.turbodl/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
+        -S|-s) FILE=~/.turbodl/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
             printf ':: updating series database...'; RUN; echo 'done!';;
     esac
 }
@@ -81,7 +79,7 @@ WRITE_TO_FILE(){
     else
         FOLDER=errors
     fi
-    GET_SIZES $1; LINKZ=$(cat links)
+    if [ "$1" == m ]; then GET_SIZES $1; fi; LINKZ=$(cat links)
     if [ "$KEY" ]; then
         echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     else
@@ -128,16 +126,16 @@ set -xe
                 if [ $NUM == 5 ]; then
                     NUM=20; CROSS_CHECK $1
                 else
-                    echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-                    if [ "$USER" == '' ]; then UPDATE_POSTS_DATABASE -A; fi
+                    #echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
+                    if [ "$USER" == '' ]; then UPDATE_POSTS_DATABASE $1; CROSS_CHECK $1; fi
                     SAME=1 && export SAME && break
                 fi
             fi
         fi
     done
     if [ $(jq length <<< "$WP_RESULTS") == 0 ]; then
-        echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
-        if [ "$USER" == '' ]; then UPDATE_POSTS_DATABASE -A; fi
+        #echo "$OUTPUT   -->   not published - $(jq length <<< "$WP_RESULTS") results" >> $1'today.txt'
+        if [ "$USER" == '' ]; then UPDATE_POSTS_DATABASE $1; CROSS_CHECK $1; fi
         SAME=1 && export SAME
     fi
     if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi
@@ -157,8 +155,8 @@ set -xe
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
 set +xe
         SITE=$(curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) || exit)
-        LINKS=$(grep -oiE "(<span style=\"font-family.*http|<a href=).*(.*|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d")
 set -xe
+        LINKS=$(grep -oiE "(<span style=\"font-family.*http|<a href=).*(.*|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d")
         grep -qiE "(hd.*cm|HDCAM|CAM|HDTS).*(mkv|mp4|avi)" <<< "$LINKS" && continue
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' || echo 'null')
         if grep -q 'null' <<< "$YEAR"; then
@@ -307,7 +305,7 @@ set -xe
         if grep -owF "$TITLE" $LIST; then
             echo "$OUTPUT   -->   updated" >> $1'today.txt'
         else
-            echo "$OUTPUT" >> $1'today.txt' && sed -i "1s/^/$TITLE\\n/" $LIST
+            true #echo "$OUTPUT" >> $1'today.txt' && sed -i "1s/^/$TITLE\\n/" $LIST
         fi
         if [ "$TITLE" == "9-1-1" ]; then TITLE='911'; fi
         echo "$TITLE %$OUTPUT".txt >> titles.txt
@@ -363,7 +361,6 @@ case $1 in
                     echo "$POS_PARAM" >> url
                 fi
             done
-            exit
             while IFS= read -r "OUTPUT"; do
                 if grep -qi movies <<< "$OUTPUT"; then
                     URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC m o
