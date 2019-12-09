@@ -142,7 +142,7 @@ MULTI_FUNC(){
         unset COLLECTION; if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
-        if [ "$2" ] || [ -e pattern ]; then
+        if [ "$2" == o ] || [ -e pattern ]; then
             if [ -e pattern ] && ! grep -q "$OUTPUT" pattern; then continue 2; fi
         fi
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
@@ -151,7 +151,7 @@ set +xe
         SITE=$(curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) || exit)
 set -xe
         LINKS=$(grep -oiE "(<span style=\"font-family.*http|<a href=).*(.*|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d")
-        grep -qiE "(hd.*cm|HDCAM|CAM|HDTS).*(mkv|mp4|avi)" <<< "$LINKS" && continue
+        grep -qiE "(hd.*cm|HDCAM|CAM|HDTS|HDTC).*(mkv|mp4|avi)" <<< "$LINKS" && continue
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' || echo 'null')
         if grep -q 'null' <<< "$YEAR"; then
             if grep -o "$OUTPUT" whitelist; then
@@ -299,7 +299,8 @@ set -xe
         if grep -owF "$TITLE" $LIST; then
             echo "$OUTPUT   -->   updated" >> $1'today.txt'
         else
-            echo "$OUTPUT" >> $1'today.txt' && sed -i "1s/^/$TITLE\\n/" $LIST
+            echo "$OUTPUT" >> $1'today.txt'
+            if [ "$2" != -t ]; then sed -i "1s/^/$TITLE\\n/" $LIST; fi
         fi
         if [ "$TITLE" == "9-1-1" ]; then TITLE='911'; fi
         echo "$TITLE %$OUTPUT".txt >> titles.txt
@@ -374,13 +375,13 @@ case $1 in
             fi
         done
         if [ "$ONE" == -m ]; then
-            URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit); MULTI_FUNC m
+            URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit); MULTI_FUNC m $1
         elif [ "$ONE" == -s ]; then
-            URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit); MULTI_FUNC s
+            URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit); MULTI_FUNC s $1
         elif [ "$ONE" == -a ]; then
-            URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit); MULTI_FUNC m
+            URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit); MULTI_FUNC m $1
 set +xe
-            URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit); MULTI_FUNC s
+            URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit); MULTI_FUNC s $1
         else
             UPDATE_POSTS_DATABASE "$ONE"
         fi;;
