@@ -73,7 +73,7 @@ UPDATE_POSTS_DATABASE(){
 }
 WRITE_TO_FILE(){
     if [[ $1 == s ]]; then FOLDER='series'; elif [[ $1 == m ]]; then FOLDER='movies'; else FOLDER=errors; fi
-    if [ "$1" == m ]; then GET_SIZES $1; fi; LINKZ=$(cat links)
+    if [ "$1" == m ]; then GET_SIZES $1; fi; if [ -e links ]; then LINKZ=$(cat links); fi
     if [ "$KEY" ]; then
         echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<p style=\"text-align: center;\">Download Links:\\n$LINKZ\\n</p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     else
@@ -254,13 +254,13 @@ set -xe
         fi
         if [ ! $COLLECTION ]; then
             if ! grep -q 'http' <<< "$LINKZ"; then
-                WRITE_TO_FILE $1
+                WRITE_TO_FILE "$1"x
                 echo "$OUTPUT   -->   no links" >> $1'today.txt'
                 BLACKLIST; continue
             fi
             if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
                 if ! grep -q "$OUTPUT" whitelist; then
-                    WRITE_TO_FILE $1
+                    WRITE_TO_FILE "$1"x
                     echo "$OUTPUT   -->   rating/genre N/A" >> $1'today.txt'
                     continue
                 fi
