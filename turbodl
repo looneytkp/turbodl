@@ -162,8 +162,13 @@ set -xe
             else
                 echo "$OUTPUT   -->   year not found" >> $1'today.txt' && continue
             fi
+        elif grep -o "$OUTPUT" whitelist; then
+            YEAR=$(grep -o "$OUTPUT.*;" whitelist | grep -oiE '([0-9][0-9][0-9][0-9]|collection)' | head -1)
+            if [ "$YEAR" == "Collection" ]; then unset YEAR; COLLECTION=YES; fi
         fi
-        if [ "$YEAR" -lt '2007' ]; then echo "$OUTPUT   -->   year less than 2007"; continue; fi
+        if [ "$YEAR" -lt '2007' ]; then
+            if ! grep -o "$OUTPUT" whitelist; then echo "$OUTPUT   -->   year less than 2007" >> $1'today.txt'; continue; fi
+        fi
         NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ - Collection//; s/ Collection//; s/ (Tv-Series)//; s/ (Anime)//' <<< "$OUTPUT")
         if grep -q "$OUTPUT=" whitelist; then
             NAME=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT=//; s/;.*//g")
@@ -300,7 +305,7 @@ set -xe
             echo "$OUTPUT   -->   updated" >> $1'today.txt'
         else
             echo "$OUTPUT" >> $1'today.txt'
-            if [ "$2" != -t ]; then sed -i "1s/^/$TITLE\\n/" $LIST; fi
+            if [ "$2" != --test ]; then sed -i "1s/^/$TITLE\\n/" $LIST; fi
         fi
         if [ "$TITLE" == "9-1-1" ]; then TITLE='911'; fi
         echo "$TITLE %$OUTPUT".txt >> titles.txt
