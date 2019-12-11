@@ -11,7 +11,7 @@ set +xe
     touch links; D=1
     while true; do
         if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
-        if ! grep -q "$TAG" <<< "$LINKS"; then break; fi
+        if ! grep -qi "$TAG" <<< "$LINKS"; then break; fi
         if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
         for PIXEL in "${PIXELS[@]}"; do
             grep -i "$TAG" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
@@ -359,7 +359,7 @@ case $1 in
             while IFS= read -r "OUTPUT"; do
                 if grep -qi movies <<< "$OUTPUT"; then
                     URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC m o
-                elif grep -qi SERIES <<< "$OUTPUT"; then
+                else
                     URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC s o
                 fi
             done < url
