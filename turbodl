@@ -16,8 +16,7 @@ set +xe
         for PIXEL in "${PIXELS[@]}"; do
             grep -qiE "($TAG|s$D)" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
             grep -qiE "($TAG|s$D).*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -iE "($TAG|s$D).*$PIXEL" <<< "$LINKS")" >> links
-            exit
-            if grep -qi "s$D"; then grep -iEv "s$D" >> links; fi
+            #if grep -qi "s$D"; then grep -iEv "s$D" >> links; fi
             continue
         done
         D=$((D+1))
@@ -152,7 +151,7 @@ set -xe
 set +xe
         SITE=$(curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) || exit)
 set -xe
-        LINKS=$(grep -oiE "(<span style=\"font-family.*http|<a href=).*(.*|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; s/<br />//")
+        LINKS=$(grep -oiE "(<span style=\"font-family.*http|<a href=).*(.*|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; s/<br \/>//")
         grep -qiE "(hd.*cm|HDCAM|CAM|HDTS|HDTC).*(mkv|mp4|avi)" <<< "$LINKS" && continue
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' || echo 'null')
         if grep -q 'null' <<< "$YEAR"; then
@@ -385,12 +384,12 @@ case $1 in
             URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit); MULTI_FUNC m $1
         elif [ "$ONE" == -s ]; then
             URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit); MULTI_FUNC s $1
-            URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/Anime" || exit); MULTI_FUNC s $1
+            #URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/Anime" || exit); MULTI_FUNC s $1
         elif [ "$ONE" == -a ]; then
             URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit); MULTI_FUNC m $1
 set +xe
             URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit); MULTI_FUNC s $1
-            URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/Anime" || exit); MULTI_FUNC s $1
+            #URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/Anime" || exit); MULTI_FUNC s $1
         else
             UPDATE_POSTS_DATABASE "$ONE"
         fi;;
