@@ -11,11 +11,11 @@ set +xe
     touch links; D=1
     while true; do
         if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
-        if ! grep -qi "$TAG" <<< "$LINKS"; then break; fi
+        if ! grep -qiE "($TAG|s$D)" <<< "$LINKS"; then break; fi
         if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
         for PIXEL in "${PIXELS[@]}"; do
-            grep -i "$TAG" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
-            grep -qi "$TAG.*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -i "$TAG.*$PIXEL" <<< "$LINKS")" >> links
+            grep -iE "($TAG|s$D)" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
+            grep -qiE "($TAG|s$D).*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -iE "($TAG|s$D).*$PIXEL" <<< "$LINKS")" >> links
             continue
         done
         D=$((D+1))
@@ -164,7 +164,7 @@ set -xe
             fi
         fi
         if [ "$YEAR" -lt '2007' ]; then echo "$OUTPUT   -->   year less than 2007"; continue; fi
-        NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ - Collection//; s/ Collection//; s/ (Tv-Series)//' <<< "$OUTPUT")
+        NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ - Collection//; s/ Collection//; s/ (Tv-Series)//; s/ (Anime)//' <<< "$OUTPUT")
         if grep -q "$OUTPUT=" whitelist; then
             NAME=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT=//; s/;.*//g")
         fi
@@ -378,10 +378,12 @@ case $1 in
             URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit); MULTI_FUNC m $1
         elif [ "$ONE" == -s ]; then
             URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit); MULTI_FUNC s $1
+            URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/Anime" || exit); MULTI_FUNC s $1
         elif [ "$ONE" == -a ]; then
             URL=$(curl $ARGS "https://lightdlmovies.blogspot.com/search/label/MOVIES" || exit); MULTI_FUNC m $1
 set +xe
             URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/TV%20SERIES" || exit); MULTI_FUNC s $1
+            URL=$(curl $ARGS "https://www.lightdl.xyz/search/label/Anime" || exit); MULTI_FUNC s $1
         else
             UPDATE_POSTS_DATABASE "$ONE"
         fi;;
