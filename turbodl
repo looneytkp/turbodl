@@ -306,6 +306,7 @@ set -xe
             echo "$OUTPUT   -->   updated" >> $1'today.txt'
         else
             echo "$OUTPUT" >> $1'today.txt'
+            grep -q '&' <<< "$TITLE" && TITLE=$(sed 's/&/\\&/g' <<< "$TITLE")
             if [ "$2" != --test ]; then sed -i "1s/^/$TITLE\\n/" $LIST; fi
         fi
         if [ "$TITLE" == "9-1-1" ]; then TITLE='911'; fi
