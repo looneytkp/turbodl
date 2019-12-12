@@ -7,14 +7,14 @@ BLACKLIST(){
     fi
 }
 PARSE(){
-set +xe
+#set +xe
     touch links; D=1
     while true; do
         if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
         if ! grep -qiE "($TAG|s$D)" <<< "$LINKS"; then break; fi
         if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
         for PIXEL in "${PIXELS[@]}"; do
-            grep -qiE "($TAG|s$D)" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
+            grep -iE "($TAG|s$D)" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
             grep -qiE "($TAG|s$D).*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -iE "($TAG|s$D).*$PIXEL" <<< "$LINKS")" >> links
             #if grep -qi "s$D"; then grep -iEv "s$D" >> links; fi
             continue
@@ -41,7 +41,7 @@ set +xe
     done <<< "$LINKZ"
     grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
     for PIXEL in "${PIXELS[@]}"; do
-        if grep -q "$PIXEL" links; then echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links)" >> links2; fi
+        grep -q "$PIXEL" links && echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links)" >> links2
     done
     if [ -e links2 ]; then mv links2 links; fi
 set -xe
@@ -342,7 +342,7 @@ PIXELS=(480p 720p 1080p 2160p); PARAMS=$#
 if [ ! -d "$DIR" ]; then
     mkdir -p "$DIR"/movies "$DIR"/series $DIR/errors; cd "$DIR"
 else
-    cd "$DIR"; mkdir -p movies series errors; rm *s/* *txt links url pattern 2> /dev/null
+    cd "$DIR"; find . ! -name '*list' -type f -exec rm -f {} +; mkdir -p movies series errors;
 fi
 if [ "$USER" == '' ]; then
     cat ~/turbodl/whitelist > ~/.turbodl/whitelist; cat ~/turbodl/blacklist > ~/.turbodl/blacklist
