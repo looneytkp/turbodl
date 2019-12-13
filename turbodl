@@ -140,7 +140,7 @@ MULTI_FUNC(){
     output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
     exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>$1'logs.txt' 2>&1
     while IFS= read -r "OUTPUT"; do
-        unset COLLECTION; if [ -e links ]; then rm links; fi
+        unset COLLECTION KEY; if [ -e links ]; then rm links; fi
 set -xe
         echo -e "\\n$OUTPUT\\n-----------------------"
         if [ "$2" == o ] || [ -e pattern ]; then
@@ -205,19 +205,26 @@ set -xe
                 A=$((A+1))
             fi
         done
-        A=0
         if [ ! $COLLECTION ]; then
             TRAILERS=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/$N/$TMDB_ID/videos?api_key=0dec8436bb1b7de2bbcb1920ac31111f" || exit)
-            if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
+            GET_TRAILER(){
+set +xe
                 while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
-                    if [ Trailer == "$(jq -r ".results[$A].type" <<< "$TRAILERS")" ]; then
-                        KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS")
+                    if [ $1 == "$(jq -r ".results[$A].type" <<< "$TRAILERS")" ]; then
+                        KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS"); export KEY
                         break
                     elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
-                        unset KEY; break
+                        break
                     else
                         A=$((A+1)); continue
                     fi
+                done
+set -xe
+            }
+            if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
+                _TYPES=(Trailer Teaser Featurette)
+                for _TYPE in "${_TYPES[@]}"; do
+                    A=0; GET_TRAILER $_TYPE; if [ $KEY ]; then break; fi
                 done
             else
                 unset KEY
@@ -241,7 +248,7 @@ set -xe
             YEAR=$(jq -r '.Year' <<< $OMDB_API)
             TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
             CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
-            if grep -qiE '(documentary|reality-tv)' <<< "$GENRE"; then if ! grep -q "$OUTPUT" whitelist; then continue; fi; fi
+            if grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE"; then if ! grep -q "$OUTPUT" whitelist; then continue; fi; fi
             RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
         fi
         PLOT=$(jq -r '.Plot' <<< "$OMDB_API"); grep -q 'N/A' <<< "$PLOT" && PLOT="$OVERVIEW"
