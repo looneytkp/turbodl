@@ -7,14 +7,15 @@ BLACKLIST(){
     fi
 }
 PARSE(){
-#set +xe
+set +xe
     touch links; D=1
     while true; do
         if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
         if ! grep -qiE "($TAG|s$D)" <<< "$LINKS"; then break; fi
         if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
         for PIXEL in "${PIXELS[@]}"; do
-            grep -iE "($TAG|s$D)" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
+            if [ $TAG != S03 ]; then break; fi
+            grep -iE ">($TAG|s$D)" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
             grep -qiE "($TAG|s$D).*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -iE "($TAG|s$D).*$PIXEL" <<< "$LINKS")" >> links
             #if grep -qi "s$D"; then grep -iEv "s$D" >> links; fi
             continue
