@@ -398,6 +398,7 @@ set +xe
         echo ":: invalid: $1";;
 esac
 
+#run checks
 #tasks
 #joint arguments
 #add anime
