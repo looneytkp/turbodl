@@ -134,7 +134,6 @@ set -xe
         sed -i "/$TITLE/d" $LIST
         #SAME=1 && export SAME
     fi
-    exit
     if [ "$2" != --test ]; then if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi; fi
 }
 MULTI_FUNC(){
