@@ -11,11 +11,11 @@ set +xe
     touch links; D=1
     while true; do
         if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
-        if ! grep -qiE "($TAG|s$D)" <<< "$LINKS"; then break; fi
+        if ! grep -qi "$TAG" <<< "$LINKS"; then break; fi
         if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
         for PIXEL in "${PIXELS[@]}"; do
-            grep -iE ">.*($TAG|s$D)" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
-            grep -qiE "($TAG|s$D).*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -iE ">.*($TAG|s$D).*$PIXEL" <<< "$LINKS")" >> links
+            grep -i ">.*$TAG" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
+            grep -qiE "$TAG.*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -iE ">.*$TAG.*$PIXEL" <<< "$LINKS")" >> links
             #if grep -qi "s$D"; then grep -iEv "s$D" >> links; fi
             continue
         done
@@ -43,7 +43,8 @@ set +xe
     for PIXEL in "${PIXELS[@]}"; do
         grep -q "$PIXEL" links && echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links)" >> links2
     done
-    if [ -e links2 ]; then mv links2 links; fi
+    if [ -e links2 ]; then mv links2 links; fi;
+    sed -i 's/ target=\"_blank\"//g' links
 set -xe
 }
 UPDATE_POSTS_DATABASE(){
@@ -96,7 +97,7 @@ CROSS_CHECK(){
             if grep -q 'http' <<< "$WP_LINKS"; then
                 LINKS2=$(sed "s/<\/a>.*/<\/a>/; /CLICK HERE FOR SUBTITLES/d; /target.*self.*Load more/d; s/ target=\"_blank\"//" <<< "$LINKS")
                 sort -n <<< "$WP_LINKS" > one && sort -n <<< "$LINKS2" > two
-                if cmp -s one two; then
+                if cmp one two; then
                     SAME=1 && export SAME; break
                 else
                     if [ "$USER" == '' ]; then
@@ -134,7 +135,7 @@ set -xe
         sed -i "/$TITLE/d" $LIST
         #SAME=1 && export SAME
     fi
-    if [ "$2" != --test ]; then if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi; fi
+    #if [ "$2" != --test ]; then if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi; fi
 }
 MULTI_FUNC(){
     output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
@@ -153,7 +154,7 @@ set +xe
         SITE=$(curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) || exit)
 set -xe
         LINKS=$(grep -oiE "(<span style=\"font-family.*http|<a href=).*(.*|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; s/<br \/>//")
-        grep -qiE "(hd.*cm|HDCAM|CAM|HDTS|HDTC).*(mkv|mp4|avi)" <<< "$LINKS" && continue
+        grep -qiE "(hd.*cm|HDCAM|CAM|HDTS|HDTC).*(mkv|mp4|avi)" <<< "$LINKS" && echo "$OUTPUT -- CAM" >> $1'today.txt' && continue
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' | head -1 || echo 'null')
         if grep -q 'null' <<< "$YEAR"; then
             if grep -o "$OUTPUT" whitelist; then
@@ -162,16 +163,16 @@ set -xe
             elif grep -qi 'collection' <<< $OUTPUT; then
                 COLLECTION=YES
             else
-                echo "$OUTPUT   -->   year not found" >> $1'today.txt' && continue
+                echo "$OUTPUT -- year not found" >> $1'today.txt' && continue
             fi
         elif grep -i 'collection' <<< "$OUTPUT"; then
             COLLECTION=YES
-        elif grep -o "$OUTPUT" whitelist; then
-            YEAR=$(grep -o "$OUTPUT.*;" whitelist | grep -oiE '([0-9][0-9][0-9][0-9]|collection)' | head -1)
-            if [ "$YEAR" == "Collection" ]; then unset YEAR; COLLECTION=YES; fi
+        #elif grep -o "$OUTPUT" whitelist; then
+        #    YEAR=$(grep -o "$OUTPUT.*;" whitelist | grep -oiE '([0-9][0-9][0-9][0-9]|collection)' | head -1)
+        #    if [ "$YEAR" == "Collection" ]; then unset YEAR; COLLECTION=YES; fi
         fi
         if [ "$YEAR" \< '2007' -a ! "$COLLECTION" ]; then
-            if ! grep -o "$OUTPUT" whitelist; then echo "$OUTPUT   -->   year less than 2007" >> $1'today.txt'; continue; fi
+            if ! grep -o "$OUTPUT" whitelist; then echo "$OUTPUT -- year less than 2007" >> $1'today.txt'; continue; fi
         fi
         NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ - Collection//; s/ Collection//; s/ (Tv-Series)//; s/ (Anime)//' <<< "$OUTPUT")
         if grep -q "$OUTPUT=" whitelist; then
@@ -180,7 +181,7 @@ set -xe
         if [[ $1 == s ]]; then N='tv'; else N='movie'; fi
         TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/$N?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR" || exit)
         if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then
-            echo "$OUTPUT   -->   not found" >> $1'today.txt'; continue
+            echo "$OUTPUT -- not found" >> $1'today.txt'; continue
         fi
         if [[ $1 == s ]]; then F='first_air_date'; else F='release_date'; fi
         A=0
@@ -205,7 +206,7 @@ set -xe
                     OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
                     break
                 elif [ "$A" == $(jq '.total_results' <<< "$TMDB_API") ]; then
-                    echo "$OUTPUT   -->   not found" >> $1'today.txt'
+                    echo "$OUTPUT -- not found" >> $1'today.txt'
                     continue 2
                 fi
                 A=$((A+1))
@@ -238,12 +239,12 @@ set -xe
         fi
         if [[ $1 == s ]]; then N='show'; else N='movie'; fi
         IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb")
-        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT   -->   false trakt API response" >> $1'today.txt' && XX=YES
+        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> $1'today.txt' && XX=YES
         if [ "$XX" ]; then
             BLACKLIST; unset XX; continue
         fi
         OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
-        grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT   -->   false OMDB API response" >> $1'today.txt' && XX=YES
+        grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> $1'today.txt' && XX=YES
         if [ "$XX" ]; then
             BLACKLIST; unset XX; continue
         fi
@@ -268,19 +269,19 @@ set +xe
         fi
 set -xe
         curl $ARGS "$POSTER" -o "$TITLE".jpg || if [ ! -e "$TITLE.jpg" ]; then
-            echo "$OUTPUT   -->   img not found" >>  $1'today.txt'
+            echo "$OUTPUT -- img not found" >>  $1'today.txt'
             BLACKLIST; continue
         fi
         if [ ! $COLLECTION ]; then
             if ! grep -q 'http' <<< "$LINKZ"; then
                 WRITE_TO_FILE "$1"x
-                echo "$OUTPUT   -->   no links" >> $1'today.txt'
+                echo "$OUTPUT -- no links" >> $1'today.txt'
                 BLACKLIST; continue
             fi
             if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
                 if ! grep -q "$OUTPUT" whitelist; then
                     WRITE_TO_FILE "$1"x
-                    echo "$OUTPUT   -->   rating/genre N/A" >> $1'today.txt'
+                    echo "$OUTPUT -- rating/genre N/A" >> $1'today.txt'
                     continue
                 fi
             else
@@ -310,13 +311,13 @@ set -xe
         if [ $(identify -format "%w" "$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" "$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -lt 700 ]; then
             if ! grep -q "$OUTPUT" whitelist; then
                 WRITE_TO_FILE $1
-                echo "$OUTPUT   -->   image dimension error" >> $1'today.txt'
+                echo "$OUTPUT -- image dimension error" >> $1'today.txt'
                 continue
             fi
         fi
         WRITE_TO_FILE $1
         if grep -owF "$TITLE" $LIST; then
-            echo "$OUTPUT   -->   updated" >> $1'today.txt'
+            echo "$OUTPUT updated" >> $1'today.txt'
         else
             echo "$OUTPUT" >> $1'today.txt'
             if [ "$2" != --test ]; then sed -i "1s/^/$(sed 's/&/\\&/g' <<< "$TITLE")\\n/" $LIST; fi
