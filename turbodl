@@ -14,8 +14,8 @@ set +xe
         if ! grep -qi "$TAG" <<< "$LINKS"; then break; fi
         if ! grep -qi "Season $D" links; then echo -e "<h1>Season $D</h1>" >> links; fi
         for PIXEL in "${PIXELS[@]}"; do
-            grep -i ">.*$TAG" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
-            grep -qiE "$TAG.*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -iE ">.*$TAG.*$PIXEL" <<< "$LINKS")" >> links
+            grep -i "$TAG" <<< "$LINKS" | grep -vE '(480p|720p|1080p|2160p)' >> links || true
+            grep -qiE "$TAG.*$PIXEL" <<< "$LINKS" && echo -e "\\n$PIXEL\\n$(grep -iE "$TAG.*$PIXEL" <<< "$LINKS")" >> links
             #if grep -qi "s$D"; then grep -iEv "s$D" >> links; fi
             continue
         done
