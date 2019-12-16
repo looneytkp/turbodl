@@ -7,7 +7,7 @@ BLACKLIST(){
     fi
 }
 PARSE(){
-#set +xe
+set +xe
     touch links; D=1
     while true; do
         if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
@@ -21,7 +21,6 @@ PARSE(){
         done
         D=$((D+1))
     done
-    exit
 set -xe
 }
 GET_SIZES(){
@@ -135,8 +134,7 @@ set -xe
         sed -i "/$TITLE/d" $LIST
         #SAME=1 && export SAME
     fi
-    #if [ "$2" != --test ]; then if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi; fi
-    exit
+    if [ "$2" != --test ]; then if [ -e one ]; then rm one; fi; if [ -e two ]; then rm two; fi; fi
 }
 MULTI_FUNC(){
     output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
