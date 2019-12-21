@@ -156,7 +156,7 @@ set -xe
         LINKS=$(grep -oiE "(<span style=\"font-family.*http|<a href=).*(.*|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" <<< "$SITE" | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; s/<br \/>//")
         grep -qiE "(hd.*cm|HDCAM|CAM|HDTS|HDTC).*(mkv|mp4|avi)" <<< "$LINKS" && echo "$OUTPUT -- CAM" >> $1'today.txt' && continue
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' <<< "$SITE" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' | head -1 || echo 'null')
-        if grep -q 'null' <<< "$YEAR"; then
+        if [ -z "$YEAR" ]; then
             if grep -o "$OUTPUT" whitelist; then
                 YEAR=$(grep -oiE "$OUTPUT.*#([0-9][0-9][0-9][0-9]|collection)" whitelist | sed 's/.*#//')
                 if [ "$YEAR" == "Collection" ]; then unset YEAR; COLLECTION=YES; fi
