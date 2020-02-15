@@ -1,11 +1,11 @@
 #!/bin/env bash
-BLACKLIST(){
-    if [ "$USER" == '' ]; then
-        echo "$OUTPUT;" >> blacklist #git stash
-    elif [ "$USER" == 'persie' ]; then
-        (cd ~/git/turbodl; echo "$OUTPUT;" >> blacklist) #git add blacklist; git commit -m 'updated blacklist')
-    fi
-}
+#BLACKLIST(){
+#    if [ "$USER" == '' ]; then
+ #       echo "$OUTPUT;" >> blacklist #git stash
+  #  elif [ "$USER" == 'persie' ]; then
+   #     (cd ~/git/turbodl; echo "$OUTPUT;" >> blacklist) #git add blacklist; git commit -m 'updated blacklist')
+    #fi
+#}
 PARSE(){
 set +xe
     touch links; D=1
@@ -198,6 +198,12 @@ set -xe
                 TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
                 OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
                 break
+            elif grep -q "$((YEAR-1))" <<< $(jq -r ".results[$A].$F" <<< "$TMDB_API"); then
+                POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
+                grep -q null <<< "$POSTER" && A=$((A+1)) && continue
+                TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
+                OVERVIEW=$(jq -r ".results[$A] | .overview" <<< "$TMDB_API")
+                break
             else
                 if [ $(jq '.total_results' <<< "$TMDB_API") == 1 ]; then
                     POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
@@ -241,12 +247,12 @@ set -xe
         IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb")
         ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> $1'today.txt' && XX=YES
         if [ "$XX" ]; then
-            BLACKLIST; unset XX; continue
+             unset XX; continue
         fi
         OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
         grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> $1'today.txt' && XX=YES
         if [ "$XX" ]; then
-            BLACKLIST; unset XX; continue
+             unset XX; continue
         fi
         if [ $COLLECTION ]; then
             TITLE="$NAME – Collection"; GENRE='Collection'; unset KEY
@@ -270,13 +276,13 @@ set +xe
 set -xe
         curl $ARGS "$POSTER" -o "$TITLE".jpg || if [ ! -e "$TITLE.jpg" ]; then
             echo "$OUTPUT -- img not found" >>  $1'today.txt'
-            BLACKLIST; continue
+             continue
         fi
         if [ ! $COLLECTION ]; then
             if ! grep -q 'http' <<< "$LINKZ"; then
                 WRITE_TO_FILE "$1"x
                 echo "$OUTPUT -- no links" >> $1'today.txt'
-                BLACKLIST; continue
+                 continue
             fi
             if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
                 if ! grep -q "$OUTPUT" whitelist; then
