@@ -9,6 +9,6 @@ if [ $(md5sum turbo.zip | sed 's/  .*//') == $(cat md5 | sed 's/  .*//') ]; then
 else
     md5sum turbo.zip > md5
     if [ "$USER" == '' ]; then
-        echo | mutt -s 'turbodlbot' -i mtoday stoday -a turbo.zip -- persie@turbodl.xyz info@turbodl.xyz
+        echo | mutt -s 'turbodlbot' -a turbo.zip -- persie@turbodl.xyz info@turbodl.xyz
     fi
 fi
