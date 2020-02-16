@@ -91,7 +91,7 @@ CROSS_CHECK(){
     A=0
     WP_RESULTS=$(curl $ARGS -X GET "https://$SITE/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=$NUM")
     while [[ "$A" != $(jq length <<< "$WP_RESULTS") ]]; do
-        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g")"; then
+        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./")"; then
             WP_LINKS=$(jq -r ".[$A].content.rendered" <<< "$WP_RESULTS" | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g;" || true)
             if [ $1 == s ]; then R='series.turbodl'; else R='turbodl'; fi
             if grep -q 'http' <<< "$WP_LINKS"; then
