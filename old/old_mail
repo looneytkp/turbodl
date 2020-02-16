@@ -1,0 +1,32 @@
+#!/bin/env bash
+set -ex
+DIR=~/.turbodl
+if [ -d "$DIR" ]; then
+    cd "$DIR"
+fi
+
+if [ -e mtoday.txt -a -e stoday.txt ]; then
+    echo -e "$(cat mtoday.txt)\\n\\n$(cat stoday.txt)" > text.txt; rm *today.txt
+fi
+if [ -e mtoday.txt ]; then echo "$(cat mtoday.txt)" > text.txt; fi
+if [ -e stoday.txt ]; then
+    if [ -e text.txt ]; then
+        echo -e "\\n\\n$(cat stoday.txt)" >> text.txt
+    else
+        echo "$(cat stoday.txt)" > text.txt
+    fi
+fi
+if [ ! -z "$(ls -A errors)" ]; then
+    if [ -e text.txt ]; then
+        echo | mutt -s 'turbodlbot' -i text.txt -a errors/* *logs.txt *list -- persie@turbodl.xyz info@turbodl.xyz
+    else
+        echo | mutt -s 'turbodlbot | logs' -a errors/* *logs.txt *list -- persie@turbodl.xyz
+    fi
+else
+    if [ -e text.txt ]; then
+        echo | mutt -s 'turbodlbot' -i text.txt -a *logs.txt *list -- persie@turbodl.xyz info@turbodl.xyz
+    else
+        echo | mutt -s 'turbodlbot | logs' -a *logs.txt *list -- persie@turbodl.xyz
+    fi
+fi
+rm -rf *today.txt *logs.txt text.txt 2> /dev/null

@@ -1,8 +1,0 @@
-#!/bin/env bash
-set -ex
-DIR=~/A
-if [ -d "$DIR" ]; then
-    cd "$DIR"
-fi
-zip -r turbo.zip *
-echo | mutt -s 'test' -a turbo.zip -- persie@turbodl.xyz #info@turbodl.xyz
