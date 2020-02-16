@@ -1,7 +1,7 @@
 #!/bin/env bash
 
 PARSE(){
-#set +xe
+set +xe
     if [ "$USER" == 'persie' -a "$1" != 's' ]; then
         while IFS= read -r "LINE"; do
             if [ "$1" == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
@@ -30,7 +30,6 @@ PARSE(){
             D=$((D+1))
         done
         mv link links
-        exit
     elif [ $1 == m ]; then
         grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
         for PIXEL in "${PIXELS[@]}"; do
