@@ -1,7 +1,7 @@
 #!/bin/env bash
 PARSE(){
 set +xe
-    if [ "$USER" == 'persie' -a "$1" != 's' ]; then
+    if [ "$USER" == '' ]; then
         while IFS= read -r "LINE"; do
             if [ "$1" == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
             SIZE=$(wget -o - -t 5 --timeout=5 --tries=3 --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
@@ -17,7 +17,7 @@ set +xe
             if ! grep -qi "Season $D" link; then echo -e "\\n<h3>Season $D</h3>" >> link; fi
             for PIXEL in "${PIXELS[@]}"; do
                 grep -i "$TAG" links | grep -vE '(480p|720p|1080p|2160p)' >> link || true
-                grep -vE "$TAG.*$PIXEL.*(x264|x265)" links | grep -i "$TAG.*$PIXEL" && echo -e "\\n$PIXEL\\n$(grep -i "$TAG.*$PIXEL" links | grep -vE '(x264|x265)')" >> link || true
+                grep -ivE "$TAG.*$PIXEL.*(x264|x265)" links | grep -qi "$TAG.*$PIXEL" && echo -e "\\n$PIXEL\\n$(grep -ivE "$TAG.*$PIXEL.*(x264|x265)" links | grep -i "$TAG.*$PIXEL")" >> link || true
                 grep -qi "$TAG.*$PIXEL.*x264" links && echo -e "\\n$PIXEL x264\\n$(grep -i "$TAG.*$PIXEL.*x264" links)" >> link || true
                 grep -qi "$TAG.*$PIXEL.*x265" links && echo -e "\\n$PIXEL x265\\n$(grep -i "$TAG.*$PIXEL.*x265" links)" >> link || true
                 continue
@@ -66,26 +66,26 @@ UPDATE_POSTS_DATABASE(){
 WRITE_TO_FILE(){
     if [[ $1 == s ]]; then FOLDER='series'; elif [[ $1 == m ]]; then FOLDER='movies'; else FOLDER=errors; fi
     if [ "$KEY" ]; then
-        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div>\\n\\n<p style=\"text-align: center;\">\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, try again after the current download when downloading from the same server.\\nHaving a different issue? Please leave a reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a></p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div>\\n\\n<p style=\"text-align: center;\">\\n\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, finish the current download and try again.\\nOr better yet, take a look at our <a href=\"https://turbodl.xyz/tutorials/\" target=\"_blank\" rel=\"nofollow\">Tutorials</a> on how to download effectively.\\nPlease leave a us reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a> or <a href=\"https://t.me/joinchat/Co_tylMyXwvitIi7o0ddkQ\" target=\"_blank\" rel=\"nofollow\">Telegram</a> if links are not working or if you have an issue or suggestion.\\n\\n<h3>Thank you for using TurboDL</h3></p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     else
-        echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div><p style=\"text-align: center;\">\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, try again after the current download when downloading from the same server.\\nHaving a different issue? Please leave a reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a></p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div><p style=\"text-align: center;\">\\n\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, finish the current download and try again.\\nOr better yet, take a look at our <a href=\"https://turbodl.xyz/tutorials/\" target=\"_blank\" rel=\"nofollow\">Tutorials</a> on how to download effectively.\\nPlease leave a us reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a> or <a href=\"https://t.me/joinchat/Co_tylMyXwvitIi7o0ddkQ\" target=\"_blank\" rel=\"nofollow\">Telegram</a> if links are not working or if you have an issue or suggestion.\\n\\n<h3>Thank you for using TurboDL</h3></p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     fi
     mv "$TITLE".jpg $FOLDER/"$TITLE".jpg
 }
 CROSS_CHECK(){
     DELETE_WP_POST(){
-        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" <<< "$WP_RESULTS")" 2> /dev/null
-        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" <<< "$WP_RESULTS")?force=true" 2> /dev/null
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" WP_RESULTS)" 2> /dev/null
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" WP_RESULTS)?force=true" 2> /dev/null
     }
     A=0
-    WP_RESULTS=$(curl $ARGS -X GET "https://$SITE/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=$NUM")
-    while [[ "$A" != $(jq length <<< "$WP_RESULTS") ]]; do
-        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" <<< "$WP_RESULTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./")"; then
-            WP_LINKS=$(jq -r ".[$A].content.rendered" <<< "$WP_RESULTS" | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g;" || true)
+    curl $ARGS -X GET "https://$SITE/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=$NUM" > WP_RESULTS
+    while [[ "$A" != $(jq length WP_RESULTS) ]]; do
+        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" WP_RESULTS | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./")"; then
+            jq -r ".[$A].content.rendered" WP_RESULTS | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > WP_LINKS || true
             if [ $1 == s ]; then R='series.turbodl'; else R='turbodl'; fi
-            if grep -q 'http' <<< "$WP_LINKS"; then
-                LINKS2=$(grep -o '.*http.*a>' links)
-                sort -n <<< "$WP_LINKS" > one && sort -n <<< "$LINKS2" > two
+            if grep -q 'http' WP_LINKS; then
+                grep -o '.*http.*a>' links > LINKS2
+                sort -n WP_LINKS > one && sort -n LINKS2 > two
                 if cmp one two; then
                     SAME='1'; export SAME; break
                 else
@@ -101,18 +101,22 @@ set -xe
         break
     done
     #delete title from database if post is not on turbodl.xyz but appears in the database
-    if [ $(jq length <<< "$WP_RESULTS") == 0 ]; then sed -i "/$TITLE/d" $LIST; fi
+    if [ $(jq length WP_RESULTS) == 0 ] || ! grep -q "$TITLE" WP_RESULTS; then
+        sed -i "/$TITLE/d" $LIST
+    fi
 }
 MULTI_FUNC(){
-    if [ -e titles.txt ]; then grep "$OUTPUT" titles.txt && continue; fi
     if [ ! -e movie_list ] || [ ! -e series_list ]; then UPDATE_POSTS_DATABASE -A; fi
     output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
     output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
-    exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>$1'logs.txt' 2>&1
+    if [ ! -e $1'logs.txt' ]; then
+        exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>$1'logs.txt' 2>&1
+    fi
     while IFS= read -r "OUTPUT"; do
+        if [ -e titles.txt ]; then grep "$OUTPUT" titles.txt && continue; fi
         unset YEAR COLLECTION NAME TMDB_API POSTER TMDB_ID TRAILERS KEY OMDB_API TITLE CAST GENRE RATING PLOT SAME
-        echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
 set -xe
+        echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
         if [ "$2" == o ] || [ -e pattern ]; then
             if [ -e pattern ] && ! grep -q "$OUTPUT" pattern; then continue 2; fi
         fi
@@ -121,7 +125,6 @@ set -xe
         curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) > site || exit
         grep -oiE "(<span style=\"font-family.*http|<a href=).*(|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" site | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; s/<br \/>//" > links
         [ -z links ] && echo "$OUTPUT -- no links" >> $1'today.txt' && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" links && echo '$OUTPUT is CAM' && continue
-        cat links
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' site | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' | head -1)
         if [ -z "$YEAR" ]; then
             if grep -qo "$OUTPUT" whitelist; then
@@ -215,8 +218,8 @@ set -xe
         PARSE $1
         if ! grep -q 'http' links; then echo "$OUTPUT -- no links" >> $1'today.txt' && continue; fi
         WRITE_TO_FILE $1
-        if grep -owF "$TITLE" $LIST; then
-            echo "$OUTPUT updated" >> $1'today.txt'
+        if grep -qowF "$TITLE" $LIST; then
+            echo "$OUTPUT -- updated" >> $1'today.txt'
         else
             echo "$OUTPUT" >> $1'today.txt'
             if [ "$2" != --test ]; then sed -i "1s/^/$(sed 's/&/\\&/g' <<< "$TITLE")\\n/" $LIST; fi
@@ -227,7 +230,7 @@ set -xe
         echo 'null posts'
     else
         if [ $1 == s ]; then TYPE='Series'; else TYPE='Movies'; fi
-        sed -i "1s/^/\\n${TYPE}${TASKS}\\n------\\n/" $1'today.txt'
+        ! grep -q "$TYPE" $1'today.txt' && sed -i "1s/^/\\n${TYPE}${TASKS}\\n------\\n/" $1'today.txt'
         if [ "$USER" == '' ]; then
             if [ -e titles.txt ]; then
                 SORTED_POSTS=$(sort -Rr < titles.txt)
@@ -301,11 +304,12 @@ case $1 in
                 grep -qiE '([a-z]|[0-9])' <<< "$WORD" && echo "$WORD" >> pattern || continue
             fi
         done
-        while IFS= read -r "OUTPUT"; do
-            if grep -qi movies <<< "$OUTPUT"; then
-                URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC m
+        while IFS= read -r "U"; do
+            if grep -qi movies <<< "$U"; then
+                URL=$(curl $ARGS "$U" || exit); MULTI_FUNC m
             else
-                URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC s
+set +xe
+                URL=$(curl $ARGS "$U" || exit); MULTI_FUNC s
             fi
         done < url;;
     *)
@@ -313,13 +317,12 @@ case $1 in
 esac
 #tasks code
 if [ "$TASKS" ]; then exit 1; fi
-#echo -e '\\n\\nexecuting tasks code\\n'
+echo -e '\\n\\nexecuting tasks code\\n'
 if [ "$USER" == '' ]; then
     cat ~/turbodl/tasks > $DIR/tasks; cat ~/turbodl/tasks > $DIR/tasks
 elif [ "$USER" == 'persie' ]; then
     cat ~/git/turbodl/tasks > $DIR/tasks; cat ~/git/turbodl/tasks > $DIR/tasks
 fi
-set -x
 if [ ! -e md5 ] || ! grep -q tasks md5; then md5sum tasks >> md5; fi
 if [ $(md5sum tasks | sed 's/  .*//') == $(grep 'tasks' md5 | sed 's/  .*//') ]; then
     exit
