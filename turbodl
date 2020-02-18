@@ -317,7 +317,7 @@ set +xe
 esac
 #tasks code
 if [ "$TASKS" ]; then exit 1; fi
-echo -e '\\n\\nexecuting tasks code\\n'
+echo -e ':: executing tasks'
 if [ "$USER" == '' ]; then
     cat ~/turbodl/tasks > $DIR/tasks; cat ~/turbodl/tasks > $DIR/tasks
 elif [ "$USER" == 'persie' ]; then
