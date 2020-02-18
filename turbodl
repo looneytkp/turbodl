@@ -1,5 +1,4 @@
 #!/bin/env bash
-
 PARSE(){
 set +xe
     if [ "$USER" == 'persie' -a "$1" != 's' ]; then
@@ -15,16 +14,12 @@ set +xe
         while true; do
             if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
             if ! grep -qi "$TAG" links; then break; fi
-            if ! grep -qi "Season $D" link; then echo -e "<h3>Season $D</h3>" >> link; fi
+            if ! grep -qi "Season $D" link; then echo -e "\\n<h3>Season $D</h3>" >> link; fi
             for PIXEL in "${PIXELS[@]}"; do
-                #grep -i "$TAG" links | grep -vE '(480p|720p|1080p|2160p)' >> link || true
-                #grep -qiE "$TAG.*$PIXEL" links && echo -e "\\n$PIXEL\\n$(grep -iE "$TAG.*$PIXEL" links)" >> link
-
-                grep -qiE "$TAG.*$PIXEL" links && echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links | grep -vE '(x264|x265)')" >> link || true
-                grep -qi "$TAG.*$PIXEL.*x264" links && echo -e "\\n$PIXEL x264\\n$(grep "$PIXEL.*x264" links)" >> link || true
-                grep -qi "$TAG.*$PIXEL.*x265" links && echo -e "\\n$PIXEL x265\\n$(grep "$PIXEL.*x265" links)" >> link || true
-
-                #if grep -qi "s$D"; then grep -iEv "s$D" >> links; fi
+                grep -i "$TAG" links | grep -vE '(480p|720p|1080p|2160p)' >> link || true
+                grep -vE "$TAG.*$PIXEL.*(x264|x265)" links | grep -i "$TAG.*$PIXEL" && echo -e "\\n$PIXEL\\n$(grep -i "$TAG.*$PIXEL" links | grep -vE '(x264|x265)')" >> link || true
+                grep -qi "$TAG.*$PIXEL.*x264" links && echo -e "\\n$PIXEL x264\\n$(grep -i "$TAG.*$PIXEL.*x264" links)" >> link || true
+                grep -qi "$TAG.*$PIXEL.*x265" links && echo -e "\\n$PIXEL x265\\n$(grep -i "$TAG.*$PIXEL.*x265" links)" >> link || true
                 continue
             done
             D=$((D+1))
@@ -71,9 +66,9 @@ UPDATE_POSTS_DATABASE(){
 WRITE_TO_FILE(){
     if [[ $1 == s ]]; then FOLDER='series'; elif [[ $1 == m ]]; then FOLDER='movies'; else FOLDER=errors; fi
     if [ "$KEY" ]; then
-        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div>\\n\\n<p style=\"text-align: center;\">\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, try again after the current download when downloading from the same server.\\nHaving a different issue? Please leave a reply below or contact us via <a href="https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y" target="_blank" rel="nofollow">Whatsapp</a></p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div>\\n\\n<p style=\"text-align: center;\">\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, try again after the current download when downloading from the same server.\\nHaving a different issue? Please leave a reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a></p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     else
-        echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div><p style=\"text-align: center;\">\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, try again after the current download when downloading from the same server.\\nHaving a different issue? Please leave a reply below or contact us via <a href="https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y" target="_blank" rel="nofollow">Whatsapp</a></p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div><p style=\"text-align: center;\">\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, try again after the current download when downloading from the same server.\\nHaving a different issue? Please leave a reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a></p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
     fi
     mv "$TITLE".jpg $FOLDER/"$TITLE".jpg
 }
@@ -108,21 +103,21 @@ set -xe
     #delete title from database if post is not on turbodl.xyz but appears in the database
     if [ $(jq length <<< "$WP_RESULTS") == 0 ]; then sed -i "/$TITLE/d" $LIST; fi
 }
-
 MULTI_FUNC(){
+    if [ -e titles.txt ]; then grep "$OUTPUT" titles.txt && continue; fi
     if [ ! -e movie_list ] || [ ! -e series_list ]; then UPDATE_POSTS_DATABASE -A; fi
     output=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed -e "s/'>.*//; s/.*title='//; s/<\/a>//")
     output2=$(grep ^'<a href=.*html.*title=.*</a>' <<< "$URL" | sed "s/'>.*//")
     exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>$1'logs.txt' 2>&1
     while IFS= read -r "OUTPUT"; do
         unset YEAR COLLECTION NAME TMDB_API POSTER TMDB_ID TRAILERS KEY OMDB_API TITLE CAST GENRE RATING PLOT SAME
-        echo -e "\\n$OUTPUT\\n-----------------------"
+        echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
 set -xe
-if [ "$2" == o ] || [ -e pattern ]; then
-    if [ -e pattern ] && ! grep -q "$OUTPUT" pattern; then continue 2; fi
-fi
-if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
-if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
+        if [ "$2" == o ] || [ -e pattern ]; then
+            if [ -e pattern ] && ! grep -q "$OUTPUT" pattern; then continue 2; fi
+        fi
+        if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
+        if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
         curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) > site || exit
         grep -oiE "(<span style=\"font-family.*http|<a href=).*(|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" site | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; s/<br \/>//" > links
         [ -z links ] && echo "$OUTPUT -- no links" >> $1'today.txt' && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" links && echo '$OUTPUT is CAM' && continue
@@ -218,6 +213,7 @@ set -xe
             fi
         fi
         PARSE $1
+        if ! grep -q 'http' links; then echo "$OUTPUT -- no links" >> $1'today.txt' && continue; fi
         WRITE_TO_FILE $1
         if grep -owF "$TITLE" $LIST; then
             echo "$OUTPUT updated" >> $1'today.txt'
@@ -231,7 +227,7 @@ set -xe
         echo 'null posts'
     else
         if [ $1 == s ]; then TYPE='Series'; else TYPE='Movies'; fi
-        sed -i "1s/^/\\n$TYPE\\n------\\n/" $1'today.txt'
+        sed -i "1s/^/\\n${TYPE}${TASKS}\\n------\\n/" $1'today.txt'
         if [ "$USER" == '' ]; then
             if [ -e titles.txt ]; then
                 SORTED_POSTS=$(sort -Rr < titles.txt)
@@ -291,11 +287,10 @@ case $1 in
         if [ "$ONE" == -m ]; then
             echo "https://lightdlmovies.blogspot.com/search/label/MOVIES" >> url
         elif [ "$ONE" == -s ]; then
-            echo "https://www.lightdl.xyz" >> url
+            echo -e "https://www.lightdl.xyz\\nhttps://www.lightdl.xyz/search/label/TV%20SERIES" >> url
         elif [ "$ONE" == -a ]; then
             {
-                echo "https://lightdlmovies.blogspot.com/search/label/MOVIES"
-                echo "https://www.lightdl.xyz"
+                echo -e "https://lightdlmovies.blogspot.com/search/label/MOVIES\\nhttps://www.lightdl.xyz\\nhttps://www.lightdl.xyz/search/label/TV%20SERIES"
             } >> url
         else
             UPDATE_POSTS_DATABASE "$ONE"; exit
@@ -316,3 +311,26 @@ case $1 in
     *)
         echo ":: invalid: $1";;
 esac
+#tasks code
+if [ "$TASKS" ]; then exit 1; fi
+#echo -e '\\n\\nexecuting tasks code\\n'
+if [ "$USER" == '' ]; then
+    cat ~/turbodl/tasks > $DIR/tasks; cat ~/turbodl/tasks > $DIR/tasks
+elif [ "$USER" == 'persie' ]; then
+    cat ~/git/turbodl/tasks > $DIR/tasks; cat ~/git/turbodl/tasks > $DIR/tasks
+fi
+set -x
+if [ ! -e md5 ] || ! grep -q tasks md5; then md5sum tasks >> md5; fi
+if [ $(md5sum tasks | sed 's/  .*//') == $(grep 'tasks' md5 | sed 's/  .*//') ]; then
+    exit
+else
+    sed -i "s/.*tasks/$(md5sum tasks)/" md5
+    TASKS=' -- Tasks'; export TASKS
+    while IFS= read -r "OUTPUT"; do
+        if [ "$USER" == '' ]; then
+            bash ~/turbodl/turbodl -l "$OUTPUT"; bash ~/turbodl/mail
+        elif [ "$USER" == 'persie' ]; then
+            bash ~/git/turbodl/turbodl -l "$OUTPUT"
+        fi
+    done < tasks
+fi
