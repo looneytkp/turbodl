@@ -261,7 +261,7 @@ fi
 case $1 in
     ''|-g|-l)
         if [ "$1" == -g ]; then
-            if [ "$USER" == '' ]; then (cd ~/turbodl/ && git pull); fi
+            if [ "$USER" == '' ]; then (cd ~/turbodl/ && git pull); fi; exit
         elif [ "$1" == -l ]; then
             shift
             if [ "$PARAMS" == 1 ]; then echo ':: no URLs'; exit; fi
