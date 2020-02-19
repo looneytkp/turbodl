@@ -87,7 +87,7 @@ CROSS_CHECK(){
                 grep -o '.*http.*a>' links > LINKS2
                 sort -n WP_LINKS > one && sort -n LINKS2 > two
                 if cmp one two; then
-                    SAME='1'; export SAME; break
+                    SAME='1'; export SAME; return
                 else
                     if [ "$USER" == '' ]; then
 set +xe
@@ -195,11 +195,16 @@ set -xe
             CAST=$(jq -r '.Actors' <<< "$OMDB_API")
             GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
             RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
-            if [ ! $COLLECTION ] && [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ] || grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE"; then ! grep -q "$OUTPUT" whitelist && continue; fi
-            if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
-                [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && ! grep -q "$OUTPUT" whitelist && continue
-            else
-                [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && ! grep -q "$OUTPUT" whitelist && continue
+            if [ ! $COLLECTION ]; then
+                grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" whitelist && continue
+                if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
+                    ! grep -q "$OUTPUT" whitelist && echo "$OUTPUT -- N/A" >> $1'today.txt' && continue
+                fi
+                if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
+                    [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && ! grep -q "$OUTPUT" whitelist && continue
+                else
+                    [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && ! grep -q "$OUTPUT" whitelist && continue
+                fi
             fi
         fi
         PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
@@ -315,6 +320,7 @@ set +xe
     *)
         echo ":: invalid: $1";;
 esac
+exit
 #tasks code
 if [ "$TASKS" ]; then exit 1; fi
 echo -e ':: executing tasks'
