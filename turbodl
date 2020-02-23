@@ -113,7 +113,7 @@ MULTI_FUNC(){
         exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>$1'logs.txt' 2>&1
     fi
     while IFS= read -r "OUTPUT"; do
-        if [ -e titles.txt ]; then grep "$OUTPUT" titles.txt && continue; fi
+        if [ -e titles ]; then grep "$OUTPUT" titles && continue; fi; echo "$OUTPUT" >> titles
         unset YEAR COLLECTION NAME TMDB_API POSTER TMDB_ID TRAILERS KEY OMDB_API TITLE CAST GENRE RATING PLOT SAME
 set -xe
         echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
