@@ -113,8 +113,8 @@ MULTI_FUNC(){
         exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>$1'logs.txt' 2>&1
     fi
     while IFS= read -r "OUTPUT"; do
-        if [ -e titles ]; then grep "$OUTPUT" titles && continue; fi; echo "$OUTPUT" >> titles
-        unset YEAR COLLECTION NAME TMDB_API POSTER TMDB_ID TRAILERS KEY OMDB_API TITLE CAST GENRE RATING PLOT SAME
+        if [ -e titles ]; then grep -q "$OUTPUT" titles && continue; fi; echo "$OUTPUT" >> titles
+        unset YEAR COLLECTION NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME
 set -xe
         echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
         if [ "$2" == o ] || [ -e pattern ]; then
@@ -182,7 +182,7 @@ set -xe
             fi
         fi
         if [[ $1 == s ]]; then N='show'; else N='movie'; fi
-        IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb")
+        IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb" || continue)
         ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> $1'today.txt'
         OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
         grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> $1'today.txt' && continue
