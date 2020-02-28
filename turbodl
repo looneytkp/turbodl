@@ -5,7 +5,7 @@ set +xe
         while IFS= read -r "LINE"; do
             if [ "$1" == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
             SIZE=$(wget -o - -t 5 --timeout=5 --tries=3 --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
-            grep -qE "(G|M)" <<< $SIZE && echo "$LINE - $SIZE"B >> links2 || echo "$LINE" >> links2
+            grep -qE "(G|M)" <<< $SIZE && echo "$LINE - $SIZE"B >> links2 || echo "$LINE - N/A" >> links2
         done < links
         mv links2 links
     fi
@@ -80,11 +80,11 @@ CROSS_CHECK(){
     A=0
     curl $ARGS -X GET "https://$SITE/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=$NUM" > WP_RESULTS
     while [[ "$A" != $(jq length WP_RESULTS) ]]; do
-        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" WP_RESULTS)"; then
+        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" WP_RESULTS | sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;")"; then
             jq -r ".[$A].content.rendered" WP_RESULTS | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > WP_LINKS || true
             if [ $1 == s ]; then R='series.turbodl'; else R='turbodl'; fi
             if grep -q 'http' WP_LINKS; then
-                grep -o '.*http.*a>' links > LINKS2
+                grep -o '.*http.*a>' links | sed "s/ target=\"_blank\"//g; s/ rel=\"nofollow\"//" > LINKS2
                 sort -n WP_LINKS > one && sort -n LINKS2 > two
                 if cmp one two; then
                     SAME='1'; export SAME; return
@@ -100,7 +100,7 @@ set -xe
         fi
         break
     done
-    if [ $(jq length WP_RESULTS) == 0 ] || ! grep -q "$TITLE" <<< "$(sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" WP_RESULTS)"; then
+    if [ $(jq length WP_RESULTS) == 0 ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" WP_RESULTS)"; then
         sed -i "/$TITLE/d" $LIST
     fi
 }
@@ -126,8 +126,8 @@ set -xe
         [ -z links ] && echo "$OUTPUT -- no links" >> $1'today.txt' && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" links && echo '$OUTPUT is CAM' && continue
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' site | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' | head -1)
         if [ -z "$YEAR" ]; then
-            if grep -qo "$OUTPUT" whitelist; then
-                YEAR=$(grep -o "$OUTPUT.*;" whitelist | grep -oiE '([0-9][0-9][0-9][0-9]|collection)' | head -1)
+            if grep -qio "$OUTPUT" whitelist; then
+                YEAR=$(grep -io "$OUTPUT.*;" whitelist | grep -oiE '([0-9][0-9][0-9][0-9]|collection)' | head -1)
                 if [ "$YEAR" == "Collection" ]; then unset YEAR; COLLECTION=YES; fi
             else
                 echo "$OUTPUT -- year not found" >> $1'today.txt' && continue
@@ -136,7 +136,7 @@ set -xe
             unset YEAR; COLLECTION=YES
         fi
         if [ "$YEAR" \< '2007' -a ! "$COLLECTION" ]; then
-            if ! grep -o "$OUTPUT" whitelist; then echo "$OUTPUT -- year less than 2007" >> $1'today.txt'; continue; fi
+            if ! grep -io "$OUTPUT" whitelist; then echo "$OUTPUT -- year less than 2007" >> $1'today.txt'; continue; fi
         fi
         if grep -q "$OUTPUT=" whitelist; then
             NAME=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT=//; s/;.*//g")
