@@ -33,7 +33,7 @@ set +xe
             grep -q "$PIXEL.*x265" links && echo -e "\\n$PIXEL x265\\n$(grep "$PIXEL.*x265" links)" >> links2
         done
         if [ -e links2 ]; then mv links2 links; fi;
-        sed -i 's/ target=\"_blank\"//g' links
+        sed -i 's/ target=\"_blank\"//g; s/ rel=\"nofollow\"//' links
     fi
 set -xe
 }
@@ -78,7 +78,7 @@ CROSS_CHECK(){
         curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" WP_RESULTS)?force=true" 2> /dev/null
     }
     A=0
-    curl $ARGS -X GET "https://$SITE/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=$NUM" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/" > WP_RESULTS
+    curl $ARGS -X GET "https://$SITE/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=$NUM" > WP_RESULTS
     while [[ "$A" != $(jq length WP_RESULTS) ]]; do
         if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" WP_RESULTS)"; then
             jq -r ".[$A].content.rendered" WP_RESULTS | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > WP_LINKS || true
@@ -100,8 +100,7 @@ set -xe
         fi
         break
     done
-    #delete title from database if post is not on turbodl.xyz but appears in the database
-    if [ $(jq length WP_RESULTS) == 0 ] || ! grep -q "$TITLE" WP_RESULTS; then
+    if [ $(jq length WP_RESULTS) == 0 ] || ! grep -q "$TITLE" <<< "$(sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" WP_RESULTS)"; then
         sed -i "/$TITLE/d" $LIST
     fi
 }
@@ -197,13 +196,15 @@ set -xe
             RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
             if [ ! $COLLECTION ]; then
                 grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" whitelist && continue
-                if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
-                    ! grep -q "$OUTPUT" whitelist && echo "$OUTPUT -- N/A" >> $1'today.txt' && continue
-                fi
-                if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
-                    [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && ! grep -q "$OUTPUT" whitelist && continue
-                else
-                    [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && ! grep -q "$OUTPUT" whitelist && continue
+                if ! grep -q "$OUTPUT" whitelist; then
+                    if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
+                        echo "$OUTPUT -- N/A" >> $1'today.txt' && continue
+                    fi
+                    if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
+                        [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && continue
+                    else
+                        [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && continue
+                    fi
                 fi
             fi
         fi
