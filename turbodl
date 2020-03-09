@@ -122,7 +122,7 @@ set -xe
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
         if grep -i 'trailer' <<< "$OUTPUT"; then continue; fi
         curl $ARGS $(grep "$OUTPUT" <<< "$output2" | grep -o http.*html) > site || exit
-        grep -oiE "(<span style=\"font-family.*http|<a href=).*(|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" site | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; s/<br \/>//" > links
+        grep -oiE "(<span style=\"font-family.*http|<a.*href=).*(|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" site | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; s/<br \/>//; s/<a.*href/<a href/" > links
         [ -z links ] && echo "$OUTPUT -- no links" >> $1'today.txt' && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" links && echo '$OUTPUT is CAM' && continue
         YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' site | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' | head -1)
         if [ -z "$YEAR" ]; then
@@ -182,7 +182,7 @@ set -xe
         fi
         if [[ $1 == s ]]; then N='show'; else N='movie'; fi
         IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb" || continue)
-        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> $1'today.txt'
+        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> $1'today.txt' && continue
         OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
         grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> $1'today.txt' && continue
         if [ $COLLECTION ]; then
@@ -249,10 +249,11 @@ set -xe
                 while IFS= read -r TITLES; do
                     echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i $FOLDER/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a $FOLDER/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL
                 done < titles.txt
-                echo '%%%' >> $1'today.txt'; rm titles.txt
+                rm titles.txt
             fi
         fi
     fi
+    echo '%%%' >> $1'today.txt'
 }
 DIR=~/.turbodl; ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s'
 PIXELS=(480p 720p 1080p 2160p); PARAMS=$#
