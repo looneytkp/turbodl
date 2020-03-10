@@ -28,7 +28,7 @@ set +xe
     elif [ $1 == m ]; then
         grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
         for PIXEL in "${PIXELS[@]}"; do
-            grep -q "$PIXEL" links && echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links | grep -vE '(x264|x265)')" >> links2
+            grep -vE '(x264|x265)' links | grep "$PIXEL" links && echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links | grep -vE '(x264|x265)')" >> links2
             grep -q "$PIXEL.*x264" links && echo -e "\\n$PIXEL x264\\n$(grep "$PIXEL.*x264" links)" >> links2
             grep -q "$PIXEL.*x265" links && echo -e "\\n$PIXEL x265\\n$(grep "$PIXEL.*x265" links)" >> links2
         done
@@ -253,7 +253,7 @@ set -xe
             fi
         fi
     fi
-    echo '%%%' >> $1'today.txt'
+    ! grep -q '%%%' $1'today.txt' && echo '%%%' >> $1'today.txt'
 }
 DIR=~/.turbodl; ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s'
 PIXELS=(480p 720p 1080p 2160p); PARAMS=$#
