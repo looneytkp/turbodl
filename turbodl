@@ -28,7 +28,7 @@ set +xe
     elif [ $1 == m ]; then
         grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
         for PIXEL in "${PIXELS[@]}"; do
-            grep -vE '(x264|x265)' links | grep "$PIXEL" links && echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links | grep -vE '(x264|x265)')" >> links2
+            grep -vE "$PIXEL.*(x264|x265)" links | grep "$PIXEL" && echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links | grep -vE '(x264|x265)')" >> links2
             grep -q "$PIXEL.*x264" links && echo -e "\\n$PIXEL x264\\n$(grep "$PIXEL.*x264" links)" >> links2
             grep -q "$PIXEL.*x265" links && echo -e "\\n$PIXEL x265\\n$(grep "$PIXEL.*x265" links)" >> links2
         done
@@ -135,8 +135,11 @@ set -xe
         elif [ "$YEAR" == 'Collection' ]; then
             unset YEAR; COLLECTION=YES
         fi
+        if [ $(wc -l <<< "$YEAR") \> 1 ]; then YEAR=$(sed "1d" <<< "$YEAR"); fi
         if [ "$YEAR" \< '2007' -a ! "$COLLECTION" ]; then
-            if ! grep -io "$OUTPUT" whitelist; then echo "$OUTPUT -- year less than 2007" >> $1'today.txt'; continue; fi
+            if ! grep -io "$OUTPUT" whitelist; then
+                echo "$OUTPUT -- year less than 2007" >> $1'today.txt'; continue
+            fi
         fi
         if grep -q "$OUTPUT=" whitelist; then
             NAME=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT=//; s/;.*//g")
