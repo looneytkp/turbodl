@@ -16,21 +16,21 @@ set +xe
             if ! grep -qi "$TAG" links; then break; fi
             if ! grep -qi "Season $D" link; then echo -e "\\n<h3>Season $D</h3>" >> link; fi
             for PIXEL in "${PIXELS[@]}"; do
-                grep -i "$TAG" links | grep -vE '(480p|720p|1080p|2160p)' >> link || true
-                grep -ivE "$TAG.*$PIXEL.*(x264|x265)" links | grep -qi "$TAG.*$PIXEL" && echo -e "\\n$PIXEL\\n$(grep -ivE "$TAG.*$PIXEL.*(x264|x265)" links | grep -i "$TAG.*$PIXEL")" >> link || true
-                grep -qi "$TAG.*$PIXEL.*x264" links && echo -e "\\n$PIXEL x264\\n$(grep -i "$TAG.*$PIXEL.*x264" links)" >> link || true
-                grep -qi "$TAG.*$PIXEL.*x265" links && echo -e "\\n$PIXEL x265\\n$(grep -i "$TAG.*$PIXEL.*x265" links)" >> link || true
+                grep -i "$TAG" links | grep -vE '(480|720|1080|2160)p' >> link || true
+                grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" links | grep -qiE "$TAG.*($PIXEL|${PIXEL}p)" && echo -e "\\n${PIXEL}p\\n$(grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" links | grep -iE "$TAG.*($PIXEL|${PIXEL}p)")" >> link || true
+                grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x264" links && echo -e "\\n${PIXEL}p x264\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x264" links)" >> link || true
+                grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x265" links && echo -e "\\n${PIXEL}p x265\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x265" links)" >> link || true
                 continue
             done
             D=$((D+1))
         done
         mv link links
     elif [ $1 == m ]; then
-        grep . links | grep -vE '(480p|720p|1080p|2160p)' >> links2 || true
+        grep . links | grep -vE '(480|720|1080|2160)p' >> links2 || true
         for PIXEL in "${PIXELS[@]}"; do
-            grep -vE "$PIXEL.*(x264|x265)" links | grep "$PIXEL" && echo -e "\\n$PIXEL\\n$(grep "$PIXEL" links | grep -vE '(x264|x265)')" >> links2
-            grep -q "$PIXEL.*x264" links && echo -e "\\n$PIXEL x264\\n$(grep "$PIXEL.*x264" links)" >> links2
-            grep -q "$PIXEL.*x265" links && echo -e "\\n$PIXEL x265\\n$(grep "$PIXEL.*x265" links)" >> links2
+            grep -ivE "($PIXEL|${PIXEL}p).*(x264|x265)" links | grep -iE "($PIXEL|${PIXEL}p)" && echo -e "\\n${PIXEL}p\\n$(grep -iE "($PIXEL|${PIXEL}p)" links | grep -vE '(x264|x265)')" >> links2
+            grep -qiE "($PIXEL|${PIXEL}p).*x264" links && echo -e "\\n${PIXEL}p x264\\n$(grep -iE "($PIXEL|${PIXEL}p).*x264" links)" >> links2
+            grep -qiE "($PIXEL|${PIXEL}p).*x265" links && echo -e "\\n${PIXEL}p x265\\n$(grep -iE "($PIXEL|${PIXEL}p).*x265" links)" >> links2
         done
         if [ -e links2 ]; then mv links2 links; fi;
         sed -i 's/ target=\"_blank\"//g; s/ rel=\"nofollow\"//' links
@@ -259,7 +259,7 @@ set -xe
     ! grep -q '%%%' $1'today.txt' && echo '%%%' >> $1'today.txt'
 }
 DIR=~/.turbodl; ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s'
-PIXELS=(480p 720p 1080p 2160p); PARAMS=$#
+PIXELS=(480 720 1080 2160); PARAMS=$#
 if [ ! -d "$DIR" ]; then
     mkdir -p "$DIR"/movies "$DIR"/series; cd "$DIR"
 else
