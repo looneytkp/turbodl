@@ -1,0 +1,333 @@
+#!/bin/env bash
+PARSE(){
+set +xe
+    if [ "$USER" == '' ]; then
+        while IFS= read -r "LINE"; do
+            if [ "$1" == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
+            SIZE=$(wget -o - -t 5 --timeout=5 --tries=3 --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
+            grep -qE "(G|M)" <<< $SIZE && echo "$LINE - $SIZE"B >> links2 || echo "$LINE - N/A" >> links2
+        done < links
+        mv links2 links
+    fi
+    if [ $1 == s ]; then
+        touch link; D=1
+        while true; do
+            if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
+            if ! grep -qi "$TAG" links; then
+                if [ $D \> 3 ]; then break; else D=$((D+1)) && continue; fi
+            fi
+            if ! grep -qi "Season $D" link; then echo -e "\\n<h3>Season $D</h3>" >> link; fi
+            for PIXEL in "${PIXELS[@]}"; do
+                grep -i "$TAG" links | grep -vE '(480|720|1080|2160)p' >> link || true
+                grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" links | grep -qiE "$TAG.*($PIXEL|${PIXEL}p)" && echo -e "\\n${PIXEL}p\\n$(grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" links | grep -iE "$TAG.*($PIXEL|${PIXEL}p)")" >> link || true
+                grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x264" links && echo -e "\\n${PIXEL}p x264\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x264" links)" >> link || true
+                grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x265" links && echo -e "\\n${PIXEL}p x265\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x265" links)" >> link || true
+                continue
+            done
+            D=$((D+1))
+            if ! grep -qi "$TAG" links; then break; fi
+        done
+        mv link links
+    elif [ $1 == m ]; then
+        grep . links | grep -vE '(480|720|1080|2160)p' >> links2 || true
+        for PIXEL in "${PIXELS[@]}"; do
+            grep -ivE "($PIXEL|${PIXEL}p).*(x264|x265)" links | grep -iE "($PIXEL|${PIXEL}p)" && echo -e "\\n${PIXEL}p\\n$(grep -iE "($PIXEL|${PIXEL}p)" links | grep -vE '(x264|x265)')" >> links2
+            grep -qiE "($PIXEL|${PIXEL}p).*x264" links && echo -e "\\n${PIXEL}p x264\\n$(grep -iE "($PIXEL|${PIXEL}p).*x264" links)" >> links2
+            grep -qiE "($PIXEL|${PIXEL}p).*x265" links && echo -e "\\n${PIXEL}p x265\\n$(grep -iE "($PIXEL|${PIXEL}p).*x265" links)" >> links2
+        done
+        if [ -e links2 ]; then mv links2 links; fi;
+        sed -i 's/ target=\"_blank\"//g; s/ rel=\"nofollow\"//' links
+    fi
+set -xe
+}
+UPDATE_POSTS_DATABASE(){
+    RUN(){
+        COUNT=1; COUNT1=0
+        echo '---script starts above this---' > $FILE
+        while true; do
+            POSTS=$(curl -s -X GET "$URL=$COUNT&per_page=100")
+            if grep -q 'rest_post_invalid_page_number' <<< "$POSTS"; then break; fi
+            while [ $COUNT1 -lt 100 ]; do
+                title=$(jq -r ".[$COUNT1].title.rendered" <<< "$POSTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./")
+                if [ "$title" == null ]; then break; fi
+                echo "$title" >> $FILE; COUNT1=$((COUNT1+1))
+            done
+            COUNT1=0; COUNT=$((COUNT+1))
+        done
+    }
+    case "$1" in
+        -A) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
+            printf ':: updating movie database...'; RUN; echo 'done!'
+            FILE=$DIR/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
+            printf ':: updating series database...'; RUN; echo 'done!';;
+        -M|-m) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
+            printf ':: updating movie database...'; RUN; echo 'done!';;
+        -S|-s) FILE=$DIR/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
+            printf ':: updating series database...'; RUN; echo 'done!';;
+    esac
+}
+WRITE_TO_FILE(){
+    if [[ $1 == s ]]; then FOLDER='series'; elif [[ $1 == m ]]; then FOLDER='movies'; else FOLDER=errors; fi
+    if [ "$KEY" ]; then
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$KEY?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div>\\n\\n<p style=\"text-align: center;\">\\n\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, finish the current download and try again.\\nOr better yet, take a look at our <a href=\"https://turbodl.xyz/tutorials/\" target=\"_blank\" rel=\"nofollow\">Tutorials</a> on how to download effectively.\\nPlease leave a us reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a> or <a href=\"https://t.me/joinchat/Co_tylMyXwvitIi7o0ddkQ\" target=\"_blank\" rel=\"nofollow\">Telegram</a> if links are not working or if you have an issue or suggestion.\\n\\n<h3>Thank you for using TurboDL</h3></p>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
+    else
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\">Download Links:\\n$(cat links)\\n</div><div style=\"text-align: center;\">\\n\\n\\nLinks not downloading?\\nSome servers do not permit silmultaneous downloads above 2 or 3, finish the current download and try again.\\nOr better yet, take a look at our <a href=\"https://turbodl.xyz/tutorials/\" target=\"_blank\" rel=\"nofollow\">Tutorials</a> on how to download effectively.\\nPlease leave a us reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a> or <a href=\"https://t.me/joinchat/Co_tylMyXwvitIi7o0ddkQ\" target=\"_blank\" rel=\"nofollow\">Telegram</a> if links are not working or if you have an issue or suggestion.\\n\\n<h3>Thank you for using TurboDL</h3></div>\\n\\nTags: $GENRE, $Y" > $FOLDER/"$OUTPUT".txt
+    fi
+    mv "$TITLE".jpg $FOLDER/"$TITLE".jpg
+}
+CROSS_CHECK(){
+    DELETE_WP_POST(){
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" WP_RESULTS)" 2> /dev/null
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" WP_RESULTS)?force=true" 2> /dev/null
+    }
+    A=0
+    curl $ARGS -X GET "https://$SITE/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=$NUM" > WP_RESULTS
+    while [[ "$A" != $(jq length WP_RESULTS) ]]; do
+        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" WP_RESULTS | sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;")"; then
+            jq -r ".[$A].content.rendered" WP_RESULTS | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > WP_LINKS || true
+            if [ $1 == s ]; then R='series.turbodl'; else R='turbodl'; fi
+            if grep -q 'http' WP_LINKS; then
+                grep -o '.*http.*a>' links | sed "s/ target=\"_blank\"//g; s/ rel=\"nofollow\"//" > LINKS2
+                sort -n WP_LINKS > one && sort -n LINKS2 > two
+                if cmp one two; then
+                    SAME='1'; export SAME; return
+                else
+                    if [ "$USER" == '' ]; then
+set +xe
+                        DELETE_WP_POST
+set -xe
+                    fi
+                    echo "deleted $OUTPUT"
+                fi
+            fi
+        fi
+        break
+    done
+    if [ $(jq length WP_RESULTS) == 0 ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" WP_RESULTS)"; then
+        sed -i "/$TITLE/d" $LIST
+    fi
+}
+MULTI_FUNC(){
+    if [ ! -e movie_list ] || [ ! -e series_list ]; then UPDATE_POSTS_DATABASE -A; fi
+    output=$(sed -e "s:.*'>::; s:</a>::" <<< "$URL"); output2=$(sed "s:'>.*::" <<< "$URL")
+    exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>$1'logs.txt' 2>&1
+    while IFS= read -r "OUTPUT"; do
+        if [ -e titles ]; then grep -q "$OUTPUT" titles && continue; fi; echo "$OUTPUT" >> titles
+        unset YEAR COLLECTION NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME TYPE
+set -xe
+        echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
+        if [ "$2" == o ] || [ -e pattern ]; then
+            if [ -e pattern ] && ! grep -q "$OUTPUT" pattern; then continue 2; fi
+        fi
+        if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi
+        curl $ARGS $(grep "$OUTPUT" <<< "$URL" | grep -o http.*html) > site || exit
+        grep -oiE "<a href=.*(|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" site | sed 's:twitchdl.com:turbodl.xyz:; /imdb/d; s:<br />:\n:g; s:a>.*:a>:; s:" .*">::; s:<span.*span>::' > links
+        grep -v 'turbodl.xyz' links | sed 's:</a>:(turbodl.xyz)</a>:g' > links2 || true
+        grep 'turbodl.xyz' links >> links2 || true
+        if [ -e links2 ]; then mv links2 links; fi
+        [ -z links ] && echo "$OUTPUT -- no links" >> $1'today.txt' && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" links && echo '$OUTPUT is CAM' && continue
+        #YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' site | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' | head -1)
+        #if [ -z "$YEAR" ]; then
+        #    if grep -qio "$OUTPUT" whitelist; then
+        #        YEAR=$(grep -io "$OUTPUT.*;" whitelist | grep -oiE '([0-9][0-9][0-9][0-9]|collection)' | head -1)
+        #        if [ "$YEAR" == "Collection" ]; then unset YEAR; COLLECTION=YES; fi
+        #    else
+        #        echo "$OUTPUT -- year not found" >> $1'today.txt' && continue
+        #    fi
+        #elif [ "$YEAR" == 'Collection' ]; then
+        #    unset YEAR; COLLECTION=YES
+        #fi
+        #if [ $(wc -l <<< "$YEAR") \> 1 ]; then YEAR=$(sed "1d" <<< "$YEAR"); fi
+        #if [ "$YEAR" \< '2007' -a ! "$COLLECTION" ]; then
+        #    if ! grep -io "$OUTPUT" whitelist; then
+        #        echo "$OUTPUT -- year less than 2007" >> $1'today.txt'; continue
+        #    fi
+        #fi
+        if grep -q "$OUTPUT=" whitelist; then
+            NAME=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT=//; s/;.*//g")
+        else
+            NAME="$OUTPUT"
+        fi
+        if [[ $1 == s ]]; then N='tv'; else N='movie'; fi
+        #TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/$N?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR" || exit)
+        TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/$N?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1" || exit)
+        if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT -- not found" >> $1'today.txt'; continue; fi
+        if [[ $1 == s ]]; then F='first_air_date'; else F='release_date'; fi
+        A=0
+        while [ "$A" -lt "$(jq '.total_results' <<< $TMDB_API)" ]; do
+            if grep -E "($YEAR|$((YEAR+1))|$((YEAR-1)))" <<< $(jq -r ".results[$A].$F" <<< "$TMDB_API"); then
+                POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
+                grep -q null <<< "$POSTER" && A=$((A+1)) && continue
+                TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
+                break
+            fi
+            A=$((A+1))
+        done
+        if [ ! $COLLECTION ]; then
+            TRAILERS=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/$N/$TMDB_ID/videos?api_key=0dec8436bb1b7de2bbcb1920ac31111f" || exit)
+            GET_TRAILER(){
+set +xe
+                while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
+                    if [ $1 == "$(jq -r ".results[$A].type" <<< "$TRAILERS")" ]; then
+                        KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS"); export KEY
+                        break
+                    elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
+                        break
+                    else
+                        A=$((A+1)); continue
+                    fi
+                done
+set -xe
+            }
+            if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
+                _TYPES=(Trailer Teaser Featurette)
+                for _TYPE in "${_TYPES[@]}"; do
+                    A=0; GET_TRAILER $_TYPE; if [ $KEY ]; then break; fi
+                done
+            fi
+        fi
+        if [[ $1 == s ]]; then N='show'; else N='movie'; fi
+        IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=$N" | jq -r ".[0].$N.ids.imdb" || continue)
+        ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> $1'today.txt' && continue
+        OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
+        grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> $1'today.txt' && continue
+        if [ $COLLECTION ]; then
+            TITLE="$NAME – Collection"; GENRE='Collection'
+            CAST=N/A; RATING=N/A; YEAR=''
+        else
+            YEAR=$(jq -r '.Year' <<< $OMDB_API)
+            TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
+            CAST=$(jq -r '.Actors' <<< "$OMDB_API")
+            GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
+            RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
+            if [ ! $COLLECTION ]; then
+                grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" whitelist && continue
+                if ! grep -q "$OUTPUT" whitelist; then
+                    if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
+                        echo "$OUTPUT -- N/A" >> $1'today.txt' && continue
+                    fi
+                    if grep -qiE '(horror|thriller)' <<< "$GENRE"; then
+                        [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && continue
+                    else
+                        [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && continue
+                    fi
+                fi
+            fi
+        fi
+        PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
+        if [[ $1 == s ]]; then Y=$(sed 's/–/, /' <<< $YEAR); else Y="$YEAR"; fi
+        if [[ $1 == s ]]; then LIST='series_list'; SITE='series.turbodl.xyz'; else LIST='movie_list'; SITE='turbodl.xyz'; fi
+        if grep -owF "$TITLE" $LIST; then
+            NUM=5; CROSS_CHECK $1
+            if [ $SAME ]; then continue; fi
+        fi
+        PARSE $1
+        if ! grep -q 'http' links; then echo "$OUTPUT -- no links" >> $1'today.txt' && continue; fi
+        curl $ARGS "$POSTER" -o "$TITLE".jpg
+        if [ $(identify -format "%w" "$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" "$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -lt 700 ]; then
+            if ! grep -q "$OUTPUT" whitelist; then
+                echo "$OUTPUT -- image dimension error" >> $1'today.txt'; continue
+            fi
+        fi
+        WRITE_TO_FILE $1
+        if grep -qowF "$TITLE" $LIST; then
+            echo "$OUTPUT -- updated" >> $1'today.txt'
+        else
+            echo "$OUTPUT" >> $1'today.txt'
+            if [ "$2" != --test ]; then sed -i "1s/^/$(sed 's/&/\\&/g' <<< "$TITLE")\\n/" $LIST; fi
+        fi
+        echo "$TITLE %$OUTPUT".txt >> titles.txt
+    done <<< "$output"
+    if [ ! -e $1'today.txt' ]; then
+        echo 'null posts'
+    else
+        if [ $1 == s ]; then TYPE='Series'; else TYPE='Movies'; fi
+        ! grep -q "$TYPE" $1'today.txt' && sed -i "1s/^/\\n${TYPE}${TASKS}\\n------\\n/" $1'today.txt'
+        if [ "$USER" == '' ]; then
+            if [ -e titles.txt ]; then
+                SORTED_POSTS=$(sort -Rr < titles.txt)
+                if [[ $1 == s ]]; then
+                    MAIL='Ahd8s7a8a9skA@turbodl.xyz'
+                else
+                    MAIL='Ud37asAUd8a7@turbodl.xyz'
+                fi
+                if [ $1 == s ]; then FOLDER='series'; else FOLDER='movies'; fi
+                while IFS= read -r TITLES; do
+                    echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i $FOLDER/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a $FOLDER/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL
+                done < titles.txt
+                rm titles.txt
+            fi
+        fi
+    fi
+    ! grep -q '%%%' $1'today.txt' && echo '%%%' >> $1'today.txt'
+    exit
+}
+DIR=~/.turbodl; ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s'
+PIXELS=(480 720 1080 2160); PARAMS=$#
+if [ ! -d "$DIR" ]; then
+    mkdir -p "$DIR"/movies "$DIR"/series; cd "$DIR"
+else
+    cd "$DIR"; find . ! -name '*list' ! -name 'md5' ! -name 'tasks' -type f -exec rm -f {} +
+    mkdir -p movies series
+fi
+if [ "$USER" == '' ]; then
+    cat ~/turbodl/whitelist > $DIR/whitelist; cat ~/turbodl/blacklist > $DIR/blacklist
+elif [ "$USER" == 'persie' ]; then
+    cat ~/git/turbodl/whitelist > $DIR/whitelist; cat ~/git/turbodl/blacklist > $DIR/blacklist
+fi
+case $1 in
+    ''|-g|-l)
+        if [ "$1" == -g ]; then
+            if [ "$USER" == '' ]; then (cd ~/turbodl/ && git pull); fi; exit
+        elif [ "$1" == -l ]; then
+            shift
+            if [ "$PARAMS" == 1 ]; then echo ':: no URLs'; exit; fi
+            for POS_PARAM; do
+                if grep -q ^'%' <<< "$POS_PARAM"; then WORD=$(sed 's/%//' <<< "$POS_PARAM")
+                    grep -qiE '([a-z]|[0-9])' <<< "$WORD" && echo "$WORD" >> pattern || continue
+                elif grep -q 'http' <<< "$POS_PARAM"; then
+                    echo "$POS_PARAM" >> url
+                fi
+            done
+            while IFS= read -r "OUTPUT"; do
+                if grep -qi movies <<< "$OUTPUT"; then
+                    URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC m o
+                else
+                    URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC s o
+                fi
+            done < url
+        else
+            echo ':: no arguments, nothing to do'
+        fi;;
+    -m|-s|-a|-M|-S|-A)
+        ONE=$1; shift
+        if [ "$ONE" == -m ]; then
+            echo "https://lightdlmovies.blogspot.com/search/label/MOVIES" >> url
+        elif [ "$ONE" == -s ]; then
+            echo -e "https://dl.twitchdl.us/" >> url
+        elif [ "$ONE" == -a ]; then
+            {
+                echo -e "https://dl.twitchdl.us/"
+            } >> url
+        else
+            UPDATE_POSTS_DATABASE "$ONE"; exit
+        fi
+        for POS_PARAM; do
+            if [ "$PARAMS" == 1 ]; then break; fi
+            if grep -q ^'%' <<< "$POS_PARAM"; then WORD=$(sed 's/%//' <<< "$POS_PARAM")
+                grep -qiE '([a-z]|[0-9])' <<< "$WORD" && echo "$WORD" >> pattern || continue
+            fi
+        done
+        while IFS= read -r "U"; do
+            if grep -qi movies <<< "$U"; then
+                URL=$(curl $ARGS "$U" || exit); MULTI_FUNC m
+            else
+set +xe
+                URL=$(curl $ARGS "$U" | grep -o "https://dl.twitchdl.us.*html'>.*</a>" | sed '/Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d' || exit)
+                MULTI_FUNC s
+            fi
+        done < url;;
+    *)
+        echo ":: invalid: $1";;
+esac
+if [ "$USER" == '' ]; then bash /root/turbodl/mail; fi
