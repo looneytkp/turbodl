@@ -1,0 +1,82 @@
+#!/bin/env bash
+
+
+DIR=~/.turbodl; ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s'
+PIXELS=(480 720 1080 2160); PARAMS=$#
+if [ ! -d "$DIR" ]; then
+    mkdir -p "$DIR"/movies "$DIR"/series; cd "$DIR"
+else
+    cd "$DIR"; find . ! -name 'twitchdl' ! -name '*list' ! -name 'md5' ! -name 'tasks' -type f -exec rm -f {} +
+    mkdir -p movies series
+fi
+if [ "$USER" == '' ]; then
+    cat ~/turbodl/whitelist > $DIR/whitelist; cat ~/turbodl/blacklist > $DIR/blacklist;
+fi
+case $1 in
+    ''|-g|-l)
+        if [ "$1" == -g ]; then
+            if [ "$USER" == '' ]; then (cd ~/turbodl/ && git pull); fi; exit
+        elif [ "$1" == -l ]; then
+            shift
+            if [ "$PARAMS" == 1 ]; then echo ':: no URLs'; exit; fi
+            for POS_PARAM; do
+                if grep -q ^'%' <<< "$POS_PARAM"; then WORD=$(sed 's/%//' <<< "$POS_PARAM")
+                    grep -qiE '([a-z]|[0-9])' <<< "$WORD" && echo "$WORD" >> pattern || continue
+                elif grep -q 'http' <<< "$POS_PARAM"; then
+                    echo "$POS_PARAM" >> url
+                fi
+            done
+            while IFS= read -r "OUTPUT"; do
+                if grep -qi movies <<< "$OUTPUT"; then
+                    URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC m o
+                else
+                    URL=$(curl $ARGS "$OUTPUT" || exit); MULTI_FUNC s o
+                fi
+            done < url
+        else
+            echo ':: no arguments, nothing to do'; exit
+        fi;;
+    -m|-s|-a|-M|-S|-A)
+        ONE=$1; shift
+        if [ "$ONE" == -m ]; then
+            echo "https://lightdlmovies.blogspot.com/search/label/MOVIES" >> url
+        elif [ "$ONE" == -s ]; then
+            echo -e "https://dl.twitchdl.us/" >> url
+        elif [ "$ONE" == -a ]; then
+            {
+                echo -e "https://dl.twitchdl.us/"
+            } >> url
+        else
+            UPDATE_POSTS_DATABASE "$ONE"; exit
+        fi
+        for POS_PARAM; do
+            if [ "$PARAMS" == 1 ]; then break; fi
+            if grep -q ^'%' <<< "$POS_PARAM"; then WORD=$(sed 's/%//' <<< "$POS_PARAM")
+                grep -qiE '([a-z]|[0-9])' <<< "$WORD" && echo "$WORD" >> pattern || continue
+            fi
+        done;;
+    *)
+        echo ":: invalid: $1"; exit;;
+esac
+set -x
+while IFS= read -r "U"; do
+    #curl $ARGS "$U" | grep -o "https://dl.twitchdl.us.*html'>.*</a>" | sed '/Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d' > twitchdl || exit
+    output=$(sed -e "s:.*'>::; s:</a>::" twitchdl); output2=$(sed "s:'>.*::" twitchdl)
+    LINES=$(wc -l <<< "$output"); percentage=0; counter=1;
+    divide=$(printf %.0f "$(echo "100/$LINES" | bc -l)")
+    while IFS= read -r "OUTPUT"; do
+        printf %b ":: $percentage% $OUTPUT                              \\r"
+        #printf %b ":: parsing $LINES: $percentage%\\r"
+
+		percentage=$(printf %.0f "$(echo "$divide*$counter" | bc -l)")
+		if [ $counter -eq $LINES ]; then
+			subtract=$(printf %.0f "$(echo "100-$percentage+$percentage" | bc -l)")
+			percentage=$(printf %.0f "$(echo "$percentage+$subtract" | bc -l)")
+			echo ":: $percentage% $OUTPUT                              "
+            #echo ":: parsing $LINES: $percentage%"
+			break
+		fi
+		counter=$((counter+1))
+    done <<< $output
+    #MULTI_FUNC s
+done < url
