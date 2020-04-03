@@ -139,10 +139,9 @@ set -xe
         #        echo "$OUTPUT -- year less than 2007" >> $1'today.txt'; continue
         #    fi
         #fi
+        NAME=$(sed "s: - Season .::" <<< "$OUTPUT")
         if grep -q "$OUTPUT=" whitelist; then
             NAME=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT=//; s/;.*//g")
-        else
-            NAME=$(sed "s: - Season . ::" <<< "$OUTPUT")
         fi
         if [[ $1 == s ]]; then N='tv'; else N='movie'; fi
         #TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/$N?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR" || exit)
