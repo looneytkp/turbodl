@@ -6,15 +6,14 @@ CROSS_CHECK(){
     }
     A=0
     curl $ARGS -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=4" > WP_RESULTS
-    exit
     while [[ "$A" != $(jq length WP_RESULTS) ]]; do
         if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" WP_RESULTS | sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;")"; then
             jq -r ".[$A].content.rendered" WP_RESULTS | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > WP_LINKS || true
             if grep -q 'http' WP_LINKS; then
-                grep -o '.*http.*a>' links | sed "s/ target=\"_blank\"//g; s/ rel=\"nofollow\"//" > LINKS2
-                sort -n WP_LINKS > one && sort -n LINKS2 > two
+                grep -o '<a.*http.*a>' links | sort -n > two && sort -n WP_LINKS > one
                 if cmp one two; then
-                    SAME='1'; export SAME; return
+                    #SAME='1'; export SAME; return
+                    continue 2
                 else
                     if [ "$USER" == '' ]; then DELETE_WP_POST; fi
                     echo "deleted $OUTPUT"
@@ -30,98 +29,13 @@ CROSS_CHECK(){
 }
 FUNC(){
     while IFS= read -r "OUTPUT"; do
-    OUTPUT=$(sed 's: - SEASON.*::' <<< "$OUTPUT")
-    printf %b ":: $percentage% $OUTPUT                              \\r"
-    unset NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME TYPE
-    set -xe; echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
-    if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi #blaclist if title is in blacklist file
-    curl $ARGS $(grep "$OUTPUT" twitchdl | grep -o http.*html) > site || exit   #download series page
-    grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" site | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g; s:<.*span.*span>::g' > links #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
-    [ -z links ] && echo "$OUTPUT -- no links" >> $1'today.txt' && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" links && echo '$OUTPUT is CAM' && continue #remove movies containing CAM like links
-    NAME=$(sed "s: - Season .*::" <<< "$OUTPUT")
-    if grep -q "$OUTPUT=" whitelist; then NAME=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT=//; s/;.*//g"); fi
-    TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1" || exit)
-    if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT -- not found" >> stoday.txt; continue; fi
-    A=0
-    while [ "$A" -lt "$(jq '.total_results' <<< $TMDB_API)" ]; do
-        if grep -E "($YEAR|$((YEAR+1))|$((YEAR-1)))" <<< $(jq -r ".results[$A].first_air_date" <<< "$TMDB_API"); then
-            POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
-            grep -q null <<< "$POSTER" && echo "$OUTPUT -- null poster" >> stoday.txt && continue 2
-            TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")
-            break
-        fi
-        A=$((A+1))
-    done
-    TRAILER(){
-        GET_TRAILER(){
-            while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
-                if [ $1 == "$(jq -r ".results[$A].type" <<< "$TRAILERS")" ]; then
-                    KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS"); export KEY
-                    break
-                elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
-                    break
-                else
-                    A=$((A+1)); continue
-                fi
-            done
-        }
-        set +xe
-        TRAILERS=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/tv/$TMDB_ID/videos?api_key=0dec8436bb1b7de2bbcb1920ac31111f" || exit)
-        if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
-            _TYPES=(Trailer Teaser Featurette)
-            for _TYPE in "${_TYPES[@]}"; do
-                A=0; GET_TRAILER $_TYPE; if [ $KEY ]; then break; fi
-            done
-        fi
-        set -xe
-    }
-    TRAILER &
-    IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r ".[0].show.ids.imdb" || continue)
-    ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> stoday.txt && continue
-    OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
-    grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> stoday.txt && continue
-    YEAR=$(jq -r '.Year' <<< $OMDB_API | sed 's/–/, /')
-    TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
-    CAST=$(jq -r '.Actors' <<< "$OMDB_API")
-    GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
-    RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
-    grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" whitelist && continue
-    if ! grep -q "$OUTPUT" whitelist; then
-        if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> $1'today.txt' && continue; fi
-        #if grep -qiE '(horror|thriller)' <<< "$GENRE"; then [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && continue
-        #else [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && continue
-        #fi
-    fi
-    PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
-    grep -owF "$TITLE" series_list && CROSS_CHECK
-}
-
-DIR=~/.turbodl; ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'
-PIXELS=(480 720 1080 2160); PARAMS=$#
-if [ ! -d "$DIR" ]; then
-    mkdir -p "$DIR"/movies "$DIR"/series; cd "$DIR"
-else
-    cd "$DIR"; find . ! -name 'twitchdl' ! -name '*list' ! -name 'md5' ! -name 'tasks' -type f -exec rm -f {} +; mkdir -p movies series
-fi
-if [ "$USER" == '' ]; then cat ~/turbodl/whitelist > $DIR/whitelist; cat ~/turbodl/blacklist > $DIR/blacklist; fi
-case $1 in
-    '')
-        echo -e "https://dl.twitchdl.us/" >> url ;;
-esac
-#exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>slogs.txt 2>&1
-while IFS= read -r "U"; do
-    curl $ARGS "$U" | grep -o "https://dl.twitchdl.us.*html'>.*</a>" | sed '/Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d' > twitchdl || exit
-    output=$(sed -e "s:.*'>::; s:</a>::" twitchdl); output2=$(sed "s:'>.*::" twitchdl)
-    LINES=$(wc -l <<< "$output"); percentage=0; counter=1;
-    divide=$(printf %.0f "$(echo "100/$LINES" | bc -l)")
-    while IFS= read -r "OUTPUT"; do
-        OUTPUT=$(sed 's: - SEASON.*::' <<< "$OUTPUT")
-        printf %b ":: $percentage% $OUTPUT                              \\r"
         unset NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME TYPE
         set -xe; echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
         if grep "$OUTPUT" blacklist; then echo "$OUTPUT blacklisted"; continue; fi #blaclist if title is in blacklist file
         curl $ARGS $(grep "$OUTPUT" twitchdl | grep -o http.*html) > site || exit   #download series page
-        grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" site | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g; s:<.*span.*span>::g' > links #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
+        grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" site | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > links
+        sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d' links #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
+        exit
         [ -z links ] && echo "$OUTPUT -- no links" >> $1'today.txt' && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" links && echo '$OUTPUT is CAM' && continue #remove movies containing CAM like links
         NAME=$(sed "s: - Season .*::" <<< "$OUTPUT")
         if grep -q "$OUTPUT=" whitelist; then NAME=$(grep "$OUTPUT" whitelist | sed "s/.*$OUTPUT=//; s/;.*//g"); fi
@@ -141,8 +55,7 @@ while IFS= read -r "U"; do
             GET_TRAILER(){
                 while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
                     if [ $1 == "$(jq -r ".results[$A].type" <<< "$TRAILERS")" ]; then
-                        KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS"); export KEY
-                        break
+                        KEY=$(jq -r ".results[$A].key" <<< "$TRAILERS"); export KEY; break
                     elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
                         break
                     else
@@ -154,43 +67,53 @@ while IFS= read -r "U"; do
             TRAILERS=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/tv/$TMDB_ID/videos?api_key=0dec8436bb1b7de2bbcb1920ac31111f" || exit)
             if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
                 _TYPES=(Trailer Teaser Featurette)
-                for _TYPE in "${_TYPES[@]}"; do
-                    A=0; GET_TRAILER $_TYPE; if [ $KEY ]; then break; fi
-                done
+                for _TYPE in "${_TYPES[@]}"; do A=0; GET_TRAILER $_TYPE; if [ $KEY ]; then break; fi; done
             fi
             set -xe
         }
         TRAILER &
-        IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r ".[0].show.ids.imdb" || continue)
+        IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r ".[0].show.ids.imdb")
         ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> stoday.txt && continue
         OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
         grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> stoday.txt && continue
-        YEAR=$(jq -r '.Year' <<< $OMDB_API | sed 's/–/, /')
-        TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
-        CAST=$(jq -r '.Actors' <<< "$OMDB_API")
-        GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
+        YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
+        CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
         RATING=$(jq -r '.imdbRating' <<< "$OMDB_API")
         grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" whitelist && continue
         if ! grep -q "$OUTPUT" whitelist; then
-            if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> $1'today.txt' && continue; fi
-            #if grep -qiE '(horror|thriller)' <<< "$GENRE"; then [ $(sed 's/\.//' <<< "$RATING") -lt 52 ] && continue
-            #else [ $(sed 's/\.//' <<< "$RATING") -lt 55 ] && continue
-            #fi
+            if [ "$RATING" == 'N/A' -o "$GENRE" == 'N/A' ]; then
+                echo "$OUTPUT -- N/A" >> $1'today.txt' && continue
+            fi
         fi
         PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
-        grep -owF "$TITLE" series_list && CROSS_CHECK
-        done <<< $output
-
-
-
-
-		percentage=$(printf %.0f "$(echo "$divide*$counter" | bc -l)")
-		if [ $counter -eq $LINES ]; then
-			percentage=$(printf %.0f "$(echo "100-$percentage+$percentage" | bc -l)")
-			echo -e ":: $percentage% $OUTPUT                              \\n"
-			break
-		fi
-		counter=$((counter+1))
-
-    #MULTI_FUNC s
+        grep -owF "$TITLE" series_list && CROSS_CHECK; break
+        #sed 's/–/, /'
+    done <<< $output
+}
+DIR=~/.turbodl; ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'
+PIXELS=(480 720 1080 2160); PARAMS=$#
+if [ ! -d "$DIR" ]; then
+    mkdir -p "$DIR"/movies "$DIR"/series; cd "$DIR"
+else
+    cd "$DIR"; find . ! -name 'twitchdl' ! -name '*list' ! -name 'md5' ! -name 'tasks' -type f -exec rm -f {} +; mkdir -p movies series
+fi
+if [ "$USER" == '' ]; then cat ~/turbodl/whitelist > $DIR/whitelist; cat ~/turbodl/blacklist > $DIR/blacklist; fi
+case $1 in
+    '')
+        echo -e "https://dl.twitchdl.us/" >> url ;;
+esac
+printf %b ":: working $percentage%\\r"
+#exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>slogs.txt 2>&1
+while IFS= read -r "U"; do
+    #curl $ARGS "$U" | grep -o "https://dl.twitchdl.us.*html'>.*</a>" | sed '/Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d' > twitchdl || exit
+    output=$(sed "s:.*'>::; s:</a>::; s: - SEASON.*::" twitchdl); output2=$(sed "s:'>.*::" twitchdl)
+    LINE=$(wc -l<<< "$output"); percentage=0; counter=1;
+    divide=$(printf %.0f "$(echo "100/$LINES" | bc -l)")
+    FUNC
+    percentage=$(printf %.0f "$(echo "$divide*$counter" | bc -l)")
+	if [ $counter -eq "$LINE" ]; then
+		percentage=$(printf %.0f "$(echo "100-$percentage+$percentage" | bc -l)")
+		echo -e ":: working $percentage%\\n"; break
+	fi
+	counter=$((counter+1))
 done < url

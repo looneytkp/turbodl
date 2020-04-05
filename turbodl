@@ -1,6 +1,6 @@
 #!/bin/env bash
 PARSE(){
-#set +xe
+set +xe
     if [ "$USER" == '' ]; then
         while IFS= read -r "LINE"; do
             if [ "$1" == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
@@ -36,7 +36,6 @@ PARSE(){
         sed -i 's/ target=\"_blank\"//g; s/ rel=\"nofollow\"//' links
     fi
 set -xe
-exit
 }
 UPDATE_POSTS_DATABASE(){
     RUN(){
