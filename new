@@ -117,3 +117,9 @@ while IFS= read -r "U"; do
 	fi
 	counter=$((counter+1))
 done < url
+
+#for series
+#curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" 'https://eztv.io/api/get-torrents?imdb_id=6048596' | jq .
+#for movies
+#curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" 'https://yts.mx/api/v2/list_movies.json?query_term=tt1502397' | jq .
+#magnet:?xt=urn:btih:

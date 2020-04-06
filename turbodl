@@ -136,7 +136,7 @@ set -xe
             unset YEAR; COLLECTION=YES
         fi
         if [ $(wc -l <<< "$YEAR") \> 1 ]; then YEAR=$(sed "1d" <<< "$YEAR"); fi
-        if [ "$YEAR" \< '2007' -a ! "$COLLECTION" ]; then
+        if [ "$YEAR" -le '2005' -a ! "$COLLECTION" ]; then
             if ! grep -io "$OUTPUT" whitelist; then
                 echo "$OUTPUT -- year less than 2007" >> $1'today.txt'; continue
             fi
