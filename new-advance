@@ -41,7 +41,7 @@ FUNC(){
     grep -q "$OUTPUT=" $WHITELIST && NAME=$(sed "/$OUTPUT/!d; s/.*$OUTPUT=//; s/\".*//")
     TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1" || exit)
     if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT -- not found" >> stoday.txt; continue; fi
-    if [ $(jq -r ".results[0] | .poster_path" <<< "$TMDB_API" != 'null' ]; then
+    if [ $(jq -r ".results[0] | .poster_path" <<< "$TMDB_API") != 'null' ]; then
         TMDB_ID=$(jq -r ".results[0] | .id" <<< ""$TMDB_API"")
         POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[0] | .poster_path" <<< "$TMDB_API")"
     else
@@ -89,22 +89,25 @@ FUNC(){
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'
 DIR=~/.turbodl; PIXELS=(480 720 1080 2160)
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
-find . ! -name 'twitchdl' ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
-if [ "$USER" == '' ]; then cat ~/turbodl/list > $DIR/list; fi
+find . ! -name 'main' ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
+if [ "$USER" == '' ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
 case $1 in
-    '')
-        URL="https://dl.twitchdl.us/";;
+    '') exit;;
+    -l|--lightdl)  echo -e "https://www.lightdl.xyz" >> $DIR/url;;
+    -t|--twitchdl) echo -e "https://dl.twitchdl.us/" >> $DIR/url;;
+    *)  exit;;
 esac
-printf %b ":: working...\\r"
+printf %b ":: working...\\r";
 ( while IFS= read -r "U"; do
-    #curl $ARGS "$U" | grep -o "https://dl.twitchdl.us.*html'>.*</a>" | sed '/Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d' > "$JUNK/twitchdl" || exit
-    output=$(sed "s:.*'>::; s:</a>::; s: - SEASON.*::" "$JUNK/twitchdl"); output2=$(sed "s:'>.*::" "$JUNK/twitchdl")
-    ( while IFS= read -r "OUTPUT"; do
-        FUNC &
-        echo "$!" >> "$JUNK/pid"
-    done <<< $output ) &
-    echo "$!" >> "$JUNK/pid"
-done <<< "$URL" ) &
+    #curl $ARGS "$U" | grep -oE "https.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d' >> "$JUNK/main" || exit
+    sed -i '/search/d' "$JUNK/main"
+    output=$(sed "s:.*>::; s: - SEASON.*::" "$JUNK/main"); output2=$(sed "s:>.*::; s:'.*::" "$JUNK/main")
+    #( while IFS= read -r "OUTPUT"; do
+    #    FUNC &
+    #    echo "$!" >> "$JUNK/pid"
+    #done <<< $output ) &
+    #echo "$!" >> "$JUNK/pid"
+done < $DIR/url ) &
 echo "$!" >> "$JUNK/pid"
 while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; done
 echo -e ":: working...done!"
