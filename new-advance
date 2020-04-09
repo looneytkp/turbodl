@@ -91,7 +91,7 @@ DIR=~/.turbodl; PIXELS=(480 720 1080 2160)
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
 #find . ! -name 'main' ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
 find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
-if [ "$USER" == '' ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
+if [ "$USER" == root ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
 set -x
 for parameter; do
     case "$paramter" in
