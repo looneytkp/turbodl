@@ -89,14 +89,19 @@ FUNC(){
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'
 DIR=~/.turbodl; PIXELS=(480 720 1080 2160)
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
-find . ! -name 'main' ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
+#find . ! -name 'main' ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
+find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
 if [ "$USER" == '' ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
-case $1 in
-    '') exit;;
-    -l|--lightdl)  echo -e "https://www.lightdl.xyz" >> $DIR/url;;
-    -t|--twitchdl) echo -e "https://dl.twitchdl.us/" >> $DIR/url;;
-    *)  exit;;
-esac
+set -x
+for parameter; do
+    case "$paramter" in
+        '') exit;;
+        -l|--lightdl)  echo -e "https://www.lightdl.xyz" >> $DIR/url;;
+        -t|--twitchdl) echo -e "https://dl.twitchdl.us/" >> $DIR/url;;
+        *)  exit;;
+    esac
+done
+exit
 printf %b ":: working...\\r";
 ( while IFS= read -r "U"; do
     #curl $ARGS "$U" | grep -oE "https.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d' >> "$JUNK/main" || exit
