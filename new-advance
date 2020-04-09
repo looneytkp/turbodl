@@ -94,7 +94,7 @@ find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
 set -x
 if [ "$USER" == root ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
 for parameter; do
-    case "$paramter" in
+    case "$parameter" in
         '') exit;;
         -l|--lightdl)  echo -e "https://www.lightdl.xyz" >> $DIR/url;;
         -t|--twitchdl) echo -e "https://dl.twitchdl.us/" >> $DIR/url;;
