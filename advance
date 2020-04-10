@@ -1,4 +1,5 @@
 #!/bin/env bash
+set -e
 CROSS_CHECK(){
     DELETE_WP_POST(){
         curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" WP_RESULTS)" 2> /dev/null
@@ -33,7 +34,7 @@ FUNC(){
     unset NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME TYPE
     set -xe; echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
     if grep -q "$OUTPUT" <<< $BLACKLIST; then echo "$OUTPUT -- blacklisted" >> stoday.txt; return; fi #blaclist if title is in blacklist file
-    curl $ARGS $(grep "$OUTPUT" "$JUNK/twitchdl" | grep -o http.*html) > "$JUNK/$OUTPUT.site" || exit #download series page
+    curl $ARGS $(grep "$OUTPUT" "$JUNK/main" | grep -o http.*html) > "$JUNK/$OUTPUT.site" || exit #download series page
     grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" "$JUNK/$OUTPUT.site" | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > "$JUNK/$OUTPUT.links"
     sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
     [ -z "$JUNK/$OUTPUT.links" ] && echo "$OUTPUT -- no links" >> stoday.txt && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" "$JUNK/$OUTPUT.links" && echo '$OUTPUT is CAM' && continue #remove movies containing CAM like links
@@ -86,13 +87,15 @@ FUNC(){
     #sed 's/–/, /'
 
 }
+start=`date +%s`
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'; SERVER="root"; LOCAL="persie"
 DIR=~/.turbodl; PIXELS=(480 720 1080 2160); declare -a PARAMS
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
 #find . ! -name 'main' ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
 find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
 if [ "$USER" == "$SERVER" ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
-#set -x
+if [ $# == 0 ]; then echo ":: no argument."; exit 0; fi
+printf %b ":: working...\\r"
 for PARAM; do
 	grep -q -- "$PARAM" <<< "${PARAMS[@]}" && continue
     case "$PARAM" in
@@ -103,12 +106,11 @@ for PARAM; do
     esac
     PARAMS+=("$PARAM")
 done
-printf %b ":: working...\\r";
 ( while IFS= read -r "U"; do
     curl $ARGS "$U" | grep -oE "https.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d' >> "$JUNK/main" || exit
-    sed -i '/search/d' "$JUNK/main"
-    output=$(sed "s:.*>::; s: - SEASON.*::" "$JUNK/main" | grep -n .); output2=$(sed "s:>.*::; s:'.*::" "$JUNK/main")
-    echo "$output"
+    MAIN=$(sed '/search/d; /^$/d' $JUNK/main); grep -n . <<< "$MAIN" > $JUNK/main
+    output=$(sed "s:.*>::; s: - SEASON.*::" "$JUNK/main") #output2=$(sed "s:>.*::; s:'.*::" "$JUNK/main" | grep -n .)
+    #echo -e "\\n$output2"; exit
     #( while IFS= read -r "OUTPUT"; do
     #    FUNC &
     #    echo "$!" >> "$JUNK/pid"
@@ -118,7 +120,9 @@ done < $JUNK/url ) &
 echo "$!" >> "$JUNK/pid"
 while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; done
 echo -e ":: working...done!"
-
+end=`date +%s`
+runtime=$(echo -e "$end - $start" | bc -l)
+echo -e "$runtime seconds"
 #for series
 #curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" 'https://eztv.io/api/get-torrents?imdb_id=6048596' | jq .
 #for movies
