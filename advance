@@ -86,33 +86,35 @@ FUNC(){
     #sed 's/–/, /'
 
 }
-ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'
-DIR=~/.turbodl; PIXELS=(480 720 1080 2160)
+ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'; SERVER="root"; LOCAL="persie"
+DIR=~/.turbodl; PIXELS=(480 720 1080 2160); declare -a PARAMS
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
 #find . ! -name 'main' ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
 find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
-set -x
-if [ "$USER" == root ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
-for parameter; do
-    case "$parameter" in
+if [ "$USER" == "$SERVER" ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
+#set -x
+for PARAM; do
+	grep -q -- "$PARAM" <<< "${PARAMS[@]}" && continue
+    case "$PARAM" in
         '') exit;;
-        -l|--lightdl)  echo -e "https://www.lightdl.xyz" >> $DIR/url;;
-        -t|--twitchdl) echo -e "https://dl.twitchdl.us/" >> $DIR/url;;
-        *)  exit;;
+        -l|--lightdl)  echo -e "https://www.lightdl.xyz" >> $JUNK/url;;
+        -t|--twitchdl) echo -e "https://dl.twitchdl.us" >> $JUNK/url;;
+        *)  exit;;	#code for other arguments go here
     esac
+    PARAMS+=("$PARAM")
 done
-exit
 printf %b ":: working...\\r";
 ( while IFS= read -r "U"; do
-    #curl $ARGS "$U" | grep -oE "https.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d' >> "$JUNK/main" || exit
+    curl $ARGS "$U" | grep -oE "https.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d' >> "$JUNK/main" || exit
     sed -i '/search/d' "$JUNK/main"
-    output=$(sed "s:.*>::; s: - SEASON.*::" "$JUNK/main"); output2=$(sed "s:>.*::; s:'.*::" "$JUNK/main")
+    output=$(sed "s:.*>::; s: - SEASON.*::" "$JUNK/main" | grep -n .); output2=$(sed "s:>.*::; s:'.*::" "$JUNK/main")
+    echo "$output"
     #( while IFS= read -r "OUTPUT"; do
     #    FUNC &
     #    echo "$!" >> "$JUNK/pid"
     #done <<< $output ) &
     #echo "$!" >> "$JUNK/pid"
-done < $DIR/url ) &
+done < $JUNK/url ) &
 echo "$!" >> "$JUNK/pid"
 while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; done
 echo -e ":: working...done!"
