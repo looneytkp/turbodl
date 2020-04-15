@@ -6,7 +6,8 @@ CROSS_CHECK(){
         curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" WP_RESULTS)?force=true" 2> /dev/null
     }
     A=0
-    curl $ARGS -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=4" > WP_RESULTS
+    curl $ARGS -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=4" | jq . > $JUNK/WP_RESULTS
+    exit
     while [[ "$A" != $(jq length WP_RESULTS) ]]; do
         if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" WP_RESULTS | sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;")"; then
             jq -r ".[$A].content.rendered" WP_RESULTS | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > WP_LINKS || true
@@ -39,7 +40,7 @@ FUNC(){
     sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
     [ -z "$JUNK/$OUTPUT.links" ] && echo "$OUTPUT -- no links" >> stoday.txt && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" "$JUNK/$OUTPUT.links" && echo '$OUTPUT is CAM' && continue #remove movies containing CAM like links
     NAME=$(sed "s: -.*Season.*::" <<< "$OUTPUT")
-    grep -q "$OUTPUT=" $WHITELIST && NAME=$(sed "/$OUTPUT/!d; s/.*$OUTPUT=//; s/\".*//")
+    grep -q "$OUTPUT=" <<< $WHITELIST && NAME=$(sed "/$OUTPUT/!d; s/.*$OUTPUT=//; s/\".*//")
     TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1" || exit)
     if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT -- not found" >> stoday.txt; continue; fi
     if [ $(jq -r ".results[0] | .poster_path" <<< "$TMDB_API") != 'null' ]; then
@@ -78,51 +79,52 @@ FUNC(){
     YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
     CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API")
     RATING=$(jq -r '.imdbRating' <<< "$OMDB_API"); PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
-    grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" $WHITELIST && return
-    if ! grep -q "$OUTPUT" $WHITELIST; then
-        if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> stoday.txt && return; fi
-    fi
-    #grep -owF "$TITLE" series_list && CROSS_CHECK; break
-    echo "$TITLE" >> today.txt;
+    grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" <<< $WHITELIST && return
+    if ! grep -q "$OUTPUT" <<< $WHITELIST; then if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> stoday.txt && return; fi; fi
+    grep -owF "$TITLE" series_list && CROSS_CHECK
     #sed 's/–/, /'
 
 }
 start=`date +%s`
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'; SERVER="root"; LOCAL="persie"
-DIR=~/.turbodl; PIXELS=(480 720 1080 2160); declare -a PARAMS
+DIR=~/.turbodl; PIXELS=(480 720 1080 2160);
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
-#find . ! -name 'main' ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
 find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
 if [ "$USER" == "$SERVER" ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
-if [ $# == 0 ]; then echo ":: no argument."; exit 0; fi
 printf %b ":: working...\\r"
-for PARAM; do
-	grep -q -- "$PARAM" <<< "${PARAMS[@]}" && continue
-    case "$PARAM" in
-        '') exit;;
-        -l|--lightdl)  echo -e "https://www.lightdl.xyz" >> $JUNK/url;;
-        -t|--twitchdl) echo -e "https://dl.twitchdl.us" >> $JUNK/url;;
-        *)  exit;;	#code for other arguments go here
-    esac
-    PARAMS+=("$PARAM")
-done
+case "$1" in
+    '') exit;;
+    -l|--lightdl)
+        shift; echo -e "https://www.lightdl.xyz" > $JUNK/url
+        for PARAM; do grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/pattern; done;;
+    -t|--twitchdl)
+        shift; echo -e "https://dl.twitchdl.us" > $JUNK/url
+        for PARAM; do grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/pattern; done;;
+    -u|--url)
+        shift
+        for PARAM; do grep 'http' <<< "$PARAM" >> $JUNK/url || grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/pattern; done;;
+    *)  exit;;
+esac
 ( while IFS= read -r "U"; do
-    curl $ARGS "$U" | grep -oE "https.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d' >> "$JUNK/main" || exit
-    MAIN=$(sed '/search/d; /^$/d' $JUNK/main); grep -n . <<< "$MAIN" > $JUNK/main
-    output=$(sed "s:.*>::; s: - SEASON.*::" "$JUNK/main") #output2=$(sed "s:>.*::; s:'.*::" "$JUNK/main" | grep -n .)
-    #echo -e "\\n$output2"; exit
-    #( while IFS= read -r "OUTPUT"; do
-    #    FUNC &
-    #    echo "$!" >> "$JUNK/pid"
-    #done <<< $output ) &
-    #echo "$!" >> "$JUNK/pid"
+    curl $ARGS "$U" | grep -oE "https.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d' > "$JUNK/main" || exit
+    sed '/search/d; /^$/d' $JUNK/main | grep -n . > $JUNK/mains; mv $JUNK/mains $JUNK/main
+    if [ -e $JUNK/pattern ]; then
+        output=$(grep -w -f $JUNK/pattern $JUNK/main | sed "s:.*>::; s: - SEASON.*::")
+    else
+        output=$(sed "s:.*>::; s: - SEASON.*::" "$JUNK/main")
+    fi
+    ( while IFS= read -r "OUTPUT"; do
+        FUNC &
+        echo "$!" >> "$JUNK/pid"
+    done <<< $output ) &
+    echo "$!" >> "$JUNK/pid"
 done < $JUNK/url ) &
 echo "$!" >> "$JUNK/pid"
 while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; done
 echo -e ":: working...done!"
 end=`date +%s`
 runtime=$(echo -e "$end - $start" | bc -l)
-echo -e "$runtime seconds"
+echo -e ":: $runtime seconds"
 #for series
 #curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s --header "Content-Type: application/json" 'https://eztv.io/api/get-torrents?imdb_id=6048596' | jq .
 #for movies
