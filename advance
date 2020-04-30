@@ -1,33 +1,71 @@
 #!/bin/env bash
 set -e
+PARSE(){
+#set +xe
+    curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100" | jq . > "$JUNK/$OUTPUT.tor"
+    if [ $(jq '.torrents_count' $JUNK/"$OUTPUT.tor") == 0 ]; then
+        rm $JUNK/"$OUTPUT.tor"
+    else
+        A=0
+        while [ $A != $(jq -r '.torrents | length' $JUNK/"$OUTPUT.tor") ]; do
+            echo "<a href=$(jq ".torrents | .[$A].magnet_url" $JUNK/"$OUTPUT.tor")>$(jq -r ".torrents | .[$A].title" $JUNK/"$OUTPUT.tor") [torrent] (turbodl.xyz)</a> - $(($(jq -r ".torrents | .[$A].size_bytes" $JUNK/"$OUTPUT.tor") / 2**20))MB" >> test
+            A=$((A+1))
+        done
+    fi
+    exit
+#    ) &
+    if [ "$USER" == "$SERVER" ]; then
+        while IFS= read -r "LINE"; do
+            if ! grep -q 'http' <<< $LINE; then continue; fi
+            SIZE=$(wget -o - -t 5 --timeout=5 --tries=3 --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
+            grep -qE "(G|M)" <<< $SIZE && echo "$LINE - $SIZE"B >> $JUNK/"$OUTPUT.links2" || echo "$LINE - N/A" >> $JUNK/"$OUTPUT.links2"
+        done < $JUNK/"$OUTPUT.links"
+        mv $JUNK/"$OUTPUT.links2" $JUNK/"$OUTPUT.links"
+    fi
+    touch $JUNK/"$OUTPUT.link"; D=1
+    while true; do
+        if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
+        if ! grep -qi "$TAG" $JUNK/"$OUTPUT.links"; then break; fi
+        if ! grep -qi "Season $D" $JUNK/"$OUTPUT.link"; then echo -e "\\n<h3>Season $D</h3>" >> $JUNK/"$OUTPUT.link"; fi
+        for PIXEL in "${PIXELS[@]}"; do
+            grep -i "$TAG" $JUNK/"$OUTPUT.links" | grep -vE '(480|720|1080|2160)p' >> $JUNK/"$OUTPUT.link" || true
+            grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -qiE "$TAG.*($PIXEL|${PIXEL}p)" && echo -e "\\n${PIXEL}p\\n$(grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -iE "$TAG.*($PIXEL|${PIXEL}p)")" >> $JUNK/"$OUTPUT.link" || true
+            grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x264" $JUNK/"$OUTPUT.links" && echo -e "\\n${PIXEL}p x264\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x264" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
+            grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x265" $JUNK/"$OUTPUT.links" && echo -e "\\n${PIXEL}p x265\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x265" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
+            continue
+        done
+        D=$((D+1))
+    done
+    mv $JUNK/"$OUTPUT.link" $JUNK/"$OUTPUT.links"
+exit
+set -xe
+}
 CROSS_CHECK(){
     DELETE_WP_POST(){
-        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" WP_RESULTS)" 2> /dev/null
-        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" WP_RESULTS)?force=true" 2> /dev/null
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" $JUNK/"$OUTPUT.wp_results")" 2> /dev/null
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" $JUNK/"$OUTPUT.wp_results")?force=true" 2> /dev/null
     }
     A=0
-    curl $ARGS -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=4" | jq . > $JUNK/WP_RESULTS
-    exit
-    while [[ "$A" != $(jq length WP_RESULTS) ]]; do
-        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" WP_RESULTS | sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;")"; then
-            jq -r ".[$A].content.rendered" WP_RESULTS | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > WP_LINKS || true
-            if grep -q 'http' WP_LINKS; then
-                grep -o '<a.*http.*a>' links | sort -n > two && sort -n WP_LINKS > one
-                if cmp one two; then
-                    #SAME='1'; export SAME; return
-                    continue 2
+    curl $ARGS -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=4" | jq . > $JUNK/"$OUTPUT.wp_results"
+    while [[ "$A" != $(jq length $JUNK/"$OUTPUT.wp_results") ]]; do
+        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" $JUNK/"$OUTPUT.wp_results" | sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;")"; then
+            jq -r ".[$A].content.rendered" $JUNK/"$OUTPUT.wp_results" | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > $JUNK/"$OUTPUT.wp_links" || true
+            if grep -q 'http' $JUNK/"$OUTPUT.wp_links"; then
+                grep -o '<a.*http.*a>' $JUNK/"$OUTPUT.links" | sort -n > $JUNK/"$OUTPUT.two" && sort -n $JUNK/"$OUTPUT.wp_links" > $JUNK/"$OUTPUT.one"
+                if cmp $JUNK/"$OUTPUT.one" $JUNK/"$OUTPUT.two"; then
+                    echo 'no need to update'; return 1
                 else
-                    if [ "$USER" == '' ]; then DELETE_WP_POST; fi
-                    echo "deleted $OUTPUT"
+                    if [ "$USER" == "$SERVER" ]; then DELETE_WP_POST; fi; echo "deleted $OUTPUT"
                 fi
             fi
+        else
+            A=$((A+1)); continue
         fi
         break
     done
-    if [ $(jq length WP_RESULTS) == 0 ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" WP_RESULTS)"; then
+    if [ $(jq length $JUNK/"$OUTPUT.wp_results") == 0 ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" $JUNK/"$OUTPUT.wp_results")"; then
         sed -i "/$TITLE/d" $LIST
     fi
-    exit
 }
 FUNC(){
     BLACKLIST=$(jq '.[0].blacklist' list); WHITELIST=$(jq '.[0].whitelist' list)
@@ -72,8 +110,6 @@ FUNC(){
     TRAILER &
     IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r ".[0].show.ids.imdb")
     ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> stoday.txt && return
-    ( curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=" | jq . > "$JUNK/$OUTPUT.tor" ) &
-    # error code for EZTV
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
     grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> stoday.txt && return
     YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
@@ -81,7 +117,7 @@ FUNC(){
     RATING=$(jq -r '.imdbRating' <<< "$OMDB_API"); PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
     grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" <<< $WHITELIST && return
     if ! grep -q "$OUTPUT" <<< $WHITELIST; then if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> stoday.txt && return; fi; fi
-    grep -owF "$TITLE" series_list && CROSS_CHECK
+    grep -owF "$TITLE" series_list && CROSS_CHECK; PARSE
     #sed 's/–/, /'
 
 }
