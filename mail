@@ -9,7 +9,7 @@ if [ $(md5sum turbo.zip | sed 's/  .*//') == $(grep 'turbo' md5 | sed 's/  .*//'
     exit
 else
     sed -i "s/.*turbo.*/$(md5sum turbo.zip)/" md5
-    if [ "$USER" == 'root' -o $USER == '' ]; then
+    if [ "$USER" == 'root' -o "$USER" == '' ]; then
         echo | mutt -s 'turbodlbot' -i text -a turbo.zip -- persie@turbodl.xyz info@turbodl.xyz
     fi
 fi

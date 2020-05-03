@@ -1,7 +1,7 @@
 #!/bin/env bash
 PARSE(){
 set +xe
-    if [ "$USER" == 'root' -o $USER == '' ]; then
+    if [ "$USER" == 'root' -o "$USER" == '' ]; then
         while IFS= read -r "LINE"; do
             if [ "$1" == s ]; then if ! grep -q 'http' <<< $LINE; then continue; fi; fi
             SIZE=$(wget -o - -t 5 --timeout=5 --tries=3 --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
@@ -89,7 +89,7 @@ CROSS_CHECK(){
                 if cmp one two; then
                     SAME='1'; export SAME; return
                 else
-                    if [ "$USER" == 'root' -o $USER == '' ]; then
+                    if [ "$USER" == 'root' -o "$USER" == '' ]; then
 set +xe
                         DELETE_WP_POST
 set -xe
@@ -240,7 +240,7 @@ set -xe
     else
         if [ $1 == s ]; then TYPE='Series'; else TYPE='Movies'; fi
         ! grep -q "$TYPE" $1'today.txt' && sed -i "1s/^/\\n${TYPE}${TASKS}\\n------\\n/" $1'today.txt'
-        if [ "$USER" == 'root' -o $USER == '' ]; then
+        if [ "$USER" == 'root' -o "$USER" == '' ]; then
             if [ -e titles.txt ]; then
                 SORTED_POSTS=$(sort -Rr < titles.txt)
                 if [[ $1 == s ]]; then
@@ -266,7 +266,7 @@ else
     cd "$DIR"; find . ! -name '*list' ! -name 'md5' ! -name 'tasks' -type f -exec rm -f {} +
     mkdir -p movies series
 fi
-if [ "$USER" == 'root' -o $USER == '' ]; then
+if [ "$USER" == 'root' -o "$USER" == '' ]; then
     cat ~/turbodl/whitelist > $DIR/whitelist; cat ~/turbodl/blacklist > $DIR/blacklist
 elif [ "$USER" == 'persie' ]; then
     cat ~/git/turbodl/whitelist > $DIR/whitelist; cat ~/git/turbodl/blacklist > $DIR/blacklist
@@ -274,7 +274,7 @@ fi
 case $1 in
     ''|-g|-l)
         if [ "$1" == -g ]; then
-            if [ "$USER" == 'root' -o $USER == '' ]; then (cd ~/turbodl/ && git pull); fi; exit
+            if [ "$USER" == 'root' -o "$USER" == '' ]; then (cd ~/turbodl/ && git pull); fi; exit
         elif [ "$1" == -l ]; then
             shift
             if [ "$PARAMS" == 1 ]; then echo ':: no URLs'; exit; fi
