@@ -28,11 +28,11 @@ PARSE(){
             fi
         fi
         if ! grep -qi "Season $D" $JUNK/"$OUTPUT.link" 2> /dev/null; then echo -e "\\n<h3>Season $D</h3>" >> $JUNK/"$OUTPUT.link"; fi
-        for PIXEL in "${PIXELS[@]}"; do
+        for PXL in "${PXLS[@]}"; do
             grep -i "$TAG" $JUNK/"$OUTPUT.links" | grep -vE '(480|720|1080|2160)p' >> $JUNK/"$OUTPUT.link" || true
-            grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -qiE "$TAG.*($PIXEL|${PIXEL}p)" && echo -e "\\n${PIXEL}p\\n$(grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -iE "$TAG.*($PIXEL|${PIXEL}p)")" >> $JUNK/"$OUTPUT.link" || true
-            grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x264" $JUNK/"$OUTPUT.links" && echo -e "\\n${PIXEL}p x264\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x264" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
-            grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x265" $JUNK/"$OUTPUT.links" && echo -e "\\n${PIXEL}p x265\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x265" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
+            grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -iE "$TAG.*($PXL|${PXL}p)")" >> $JUNK/"$OUTPUT.link" || true
+            grep -qiE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.links" && echo -e "\\n${PXL}p x264\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
+            grep -qiE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.links" && echo -e "\\n${PXL}p x265\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
             continue
         done
         D=$((D+1))
@@ -115,56 +115,53 @@ FUNC(){
     set -xe
     IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r ".[0].show.ids.imdb")
     ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> stoday.txt && return 1
-exit    #fix
     (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/${OUTPUT}_eztv.log" 2>&1
-    I=1; J=100; A=0
+    declare -a PID; I=1; J=100; A=0
     while true; do
-        EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I") #| jq . > "$JUNK/$OUTPUT.tor"
+        EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I")
+        if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then exit; fi
         (set +xe
         while [ $A -lt $(jq -r '.torrents | length' <<< "$EZTV_API") ]; do
             echo "<a href=$(jq ".torrents | .[$A].magnet_url" <<< "$EZTV_API")>$(jq -r ".torrents | .[$A].title" <<< "$EZTV_API") [torrent] (turbodl.xyz)</a> - $(($(jq -r ".torrents | .[$A].size_bytes" <<< "$EZTV_API") / 2**20))MB" >> "$JUNK/$OUTPUT.mg"
             A=$((A+1))
-        done
-        set -xe) &
-        echo "$!" >> $JUNK/pid2
+        done; exit) &
+        PID+=($!)
         if [ $(jq '.torrents_count' <<< "$EZTV_API") -gt $J ]; then
             I=$((I+1)); J=$((J+100)); A=0; continue
-        else
-            if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then
-                break
-            fi
         fi
         break
     done
-    while grep -ow -f $JUNK/pid2 <<< $(ls /proc); do sleep 7; continue; done
 set +xe
+    PID=$(echo ${PID[@]}|tr " " "|")
+    while grep -Eowq "$PID" <<< $(ls /proc); do sleep 10; continue; done
     while IFS= read -r "MAG"; do
         grep -F "$MAG" $JUNK/"$OUTPUT.mg" >> $JUNK/"$OUTPUT.magnets"
     done <<< $(grep -o ">.*" "$JUNK/$OUTPUT.mg" | sort -n)
-set -xe
     rm $JUNK/"$OUTPUT.mg"
+set -xe
     D=1
-    if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
-    if ! grep -qi "$TAG" $JUNK/"$OUTPUT.magnets"; then
-        if [ ! -e $JUNK/"$OUTPUT.mg" ]; then
-            if [ $D == 10 ]; then rm $JUNK/"$OUTPUT.m*"; return; else D=$((D+1)); continue; fi
-        else
-            break
+    while true; do
+        if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
+        if ! grep -qi "$TAG" $JUNK/"$OUTPUT.magnets"; then
+            if [ ! -e $JUNK/"$OUTPUT.mg" ]; then
+                if [ $D == 10 ]; then rm $JUNK/"$OUTPUT.m*"; return 1; else D=$((D+1)); continue; fi
+            else
+                break
+            fi
         fi
-    fi
-    if ! grep -qi "Season $D" $JUNK/"$OUTPUT.mg" 2> /dev/null; then echo -e "\\n<h3>Season $D</h3>" >> $JUNK/"$OUTPUT.mg"; fi
-    for PIXEL in "${PIXELS[@]}"; do
-        grep -i "$TAG" $JUNK/"$OUTPUT.magnets" | grep -vE '(480|720|1080|2160)p' >> $JUNK/"$OUTPUT.mg" || true
-        grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" $JUNK/"$OUTPUT.magnets" | grep -qiE "$TAG.*($PIXEL|${PIXEL}p)" && echo -e "\\n${PIXEL}p\\n$(grep -ivE "$TAG.*($PIXEL|${PIXEL}p).*(x264|x265)" $JUNK/"$OUTPUT.magnets" | grep -iE "$TAG.*($PIXEL|${PIXEL}p)")">> $JUNK/"$OUTPUT.mg" || true
-        grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x264" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PIXEL}p x264\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x264" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
-        grep -qiE "$TAG.*($PIXEL|${PIXEL}p).*x265" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PIXEL}p x265\\n$(grep -iE "$TAG.*($PIXEL|${PIXEL}p).*x265" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
-        continue
+        if ! grep -qi "Season $D" $JUNK/"$OUTPUT.mg" 2> /dev/null; then echo -e "\\n<h3>Season $D</h3>" >> $JUNK/"$OUTPUT.mg"; fi
+        for PXL in "${PXLS[@]}"; do
+            grep -i "$TAG" $JUNK/"$OUTPUT.magnets" | grep -vE '(480|720|1080|2160)p' >> $JUNK/"$OUTPUT.mg" || true
+            grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.magnets" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.magnets" | grep -iE "$TAG.*($PXL|${PXL}p)")">> $JUNK/"$OUTPUT.mg" || true
+            grep -qiE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x264\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
+            grep -qiE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x265\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
+            continue
+        done
+        D=$((D+1))
     done
-    mv $JUNK/"$OUTPUT.mg" $JUNK/"$OUTPUT.magnets"
-    if [ -e $JUNK/"$OUTPUT.magnets" ]; then sed -i "1s/^/\\n\\nTorrents" $JUNK/"$OUTPUT.magnets"; fi
+    mv $JUNK/"$OUTPUT.mg" $JUNK/"$OUTPUT.magnets"; sed -i "1s:^:\nMagnets\::" $JUNK/"$OUTPUT.magnets"
+    rm $JUNK/"$OUTPUT.site"; exit
     ) &
-exit
-    echo $! >> $JUNK/pid2
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
     grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> stoday.txt && return 1
     YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
@@ -179,15 +176,13 @@ exit
             echo "$OUTPUT -- image dimension error" >> stoday.txt; return 1
         fi
     fi
-    #fix
-    while grep -owq -f "$JUNK/pid2" <<< $(ls /proc); do sleep 7; continue; done
-    if [ -e $JUNK/"$OUTPUT.magnets" ]; then cat $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.links"; fi
+    set +xe; while [ -e $JUNK/"$OUTPUT.site" ]; do sleep 5; continue; done; set -xe
+    cat $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.links"
     FINALIZE
-
 }
 start=`date +%s`
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'; SERVER="root"; LOCAL="persie"
-DIR=~/.turbodl; PIXELS=(480 720 1080 2160);
+DIR=~/.turbodl; PXLS=(480 720 1080 2160);
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
 find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
 if [ "$USER" == "$SERVER" ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
