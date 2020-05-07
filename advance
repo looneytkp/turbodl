@@ -48,7 +48,7 @@ CROSS_CHECK(){  ###fix
     curl $ARGS -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=4" | jq . > $JUNK/"$OUTPUT.wp_results"
     while [[ "$A" != $(jq length $JUNK/"$OUTPUT.wp_results") ]]; do
         if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" $JUNK/"$OUTPUT.wp_results" | sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;")"; then
-            jq -r ".[$A].content.rendered" $JUNK/"$OUTPUT.wp_results" | grep -o '<a href.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > $JUNK/"$OUTPUT.wp_links" || true
+            jq -r ".[$A].content.rendered" $JUNK/"$OUTPUT.wp_results" | grep -o '<a href.*http.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > $JUNK/"$OUTPUT.wp_links" || true
             if grep -q 'http' $JUNK/"$OUTPUT.wp_links"; then
                 grep -o '<a.*http.*a>' $JUNK/"$OUTPUT.links" | sort -n > $JUNK/"$OUTPUT.two" && sort -n $JUNK/"$OUTPUT.wp_links" > $JUNK/"$OUTPUT.one"
                 if cmp $JUNK/"$OUTPUT.one" $JUNK/"$OUTPUT.two"; then
@@ -71,7 +71,7 @@ FUNC(){
     exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/$OUTPUT.log" 2>&1
     unset NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME TYPE
     set -xe; echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
-    if grep -q "$OUTPUT" <<< $BLACKLIST; then echo "$OUTPUT -- blacklisted" >> stoday.txt; return 1; fi #blaclist if title is in blacklist file
+    if grep -q "$OUTPUT" <<< $BLACKLIST; then echo "$OUTPUT -- blacklisted"; return 1; fi #blaclist if title is in blacklist file
     curl $ARGS $(grep "$OUTPUT" "$JUNK/main" | grep -o http.*html) > "$JUNK/$OUTPUT.site" || exit #download series page
     grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" "$JUNK/$OUTPUT.site" | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > "$JUNK/$OUTPUT.links"
     sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
@@ -188,7 +188,7 @@ set -xe
     fi
     FINALIZE
     #fix
-    if grep -qowF "$TITLE" series_list.txt; then
+    if grep -qowF "$TITLE" series_list; then
             echo "$OUTPUT -- updated" >> stoday.txt
     else
         echo "$OUTPUT -- published" >> stoday.txt
@@ -245,6 +245,7 @@ else
         fi
     fi
 fi
+! grep -q "Series" stoday.txt && sed -i "1s/^/\\nSeries\\n------\\n/" stoday.txt
 set +x
 echo -e ":: working...done!"
 end=`date +%s`
