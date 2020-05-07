@@ -22,7 +22,7 @@ PARSE(){
         if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
         if ! grep -qi "$TAG" $JUNK/"$OUTPUT.links"; then
             if [ ! -e $JUNK/"$OUTPUT.link" ]; then
-                if [ $D == 10 ]; then echo 'links missing'; rm $JUNK/"$OUTPUT.link*"; return; else D=$((D+1)); continue; fi
+                if [ $D == 10 ]; then unset CHECK; rm $JUNK/"$OUTPUT.links"; return; else D=$((D+1)); continue; fi
             else
                 break
             fi
@@ -75,11 +75,10 @@ FUNC(){
     curl $ARGS $(grep "$OUTPUT" "$JUNK/main" | grep -o http.*html) > "$JUNK/$OUTPUT.site" || exit #download series page
     grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" "$JUNK/$OUTPUT.site" | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > "$JUNK/$OUTPUT.links"
     sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
-    [ -z "$JUNK/$OUTPUT.links" ] && echo "$OUTPUT -- no links" >> stoday.txt && continue || grep -qE "(hd.*cm|HDCAM|HDCam|CAM|HDTS|HDTC|DVD|dvd|SCR|Scr|scr).*(mkv|mp4|avi)" "$JUNK/$OUTPUT.links" && echo '$OUTPUT is CAM' && return 1 #remove movies containing CAM like links
+    grep -q 'http' $JUNK/"$OUTPUT.links" && CHECK=1
     NAME=$(sed "s: -.*Season.*::" <<< "$OUTPUT")
-    #YEAR=$(sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' $JUNK/"$OUTPUT.site" | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' | head -1 || true)
     grep -q "$OUTPUT=" <<< $WHITELIST && NAME=$(sed "/$OUTPUT/!d; s/.*$OUTPUT=//; s/\".*//")
-    TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&year=$YEAR" || exit)
+    TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&" || exit)
     if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT -- not found" >> stoday.txt; return 1; fi
     A=0
     while true; do
@@ -111,7 +110,7 @@ FUNC(){
     if [ "$(jq '.results | length' <<< $TRAILERS)" != '0' ]; then
         _TYPES=(Trailer Teaser Featurette)
         for _TYPE in "${_TYPES[@]}"; do A=0; GET_TRAILER $_TYPE; if [ $KEY ]; then break; fi; done
-    fi) &
+    fi; exit) &
     set -xe
     IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r ".[0].show.ids.imdb")
     ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> stoday.txt && return 1
@@ -119,7 +118,7 @@ FUNC(){
     declare -a PID; I=1; J=100; A=0
     while true; do
         EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I")
-        if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then exit; fi
+        if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/"$OUTPUT.site"; exit; fi
         (set +xe
         while [ $A -lt $(jq -r '.torrents | length' <<< "$EZTV_API") ]; do
             echo "<a href=$(jq ".torrents | .[$A].magnet_url" <<< "$EZTV_API")>$(jq -r ".torrents | .[$A].title" <<< "$EZTV_API") [torrent] (turbodl.xyz)</a> - $(($(jq -r ".torrents | .[$A].size_bytes" <<< "$EZTV_API") / 2**20))MB" >> "$JUNK/$OUTPUT.mg"
@@ -169,15 +168,24 @@ set -xe
     grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" <<< $WHITELIST && return 1
     if ! grep -q "$OUTPUT" <<< $WHITELIST; then if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> stoday.txt && return 1; fi; fi
     grep -owF "$TITLE" series_list && CROSS_CHECK; PARSE
-    if ! grep -q 'http' $JUNK/"$OUTPUT.links"; then echo "$OUTPUT -- no links" >> stoday.txt; rm $JJUNK/"$OUTPUT.links"; fi
+    set +xe; while [ -e $JUNK/"$OUTPUT.site" ]; do sleep 5; continue; done; set -xe
+    if [ -e $JUNK/"$OUTPUT.magnets" ]; then
+        cat $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.links"
+        if [ ! $CHECK ]; then echo "$OUTPUT -- no links" >> stoday.txt; fi
+    else
+        if [ ! $CHECK ]; then
+            echo "$OUTPUT -- no links & magnets" >> stoday.txt
+            return 1
+        else
+            echo "$OUTPUT -- no magnets" >> stoday.txt
+        fi
+    fi
     curl $ARGS "$POSTER" -o "series/$TITLE".jpg
     if [ $(identify -format "%w" "series/$TITLE.jpg")> /dev/null -gt 530 -o $(identify -format "%w" "series/$TITLE.jpg")> /dev/null -lt 470 -o $(identify -format "%h" "series/$TITLE.jpg")> /dev/null -gt 780 -o $(identify -format "%h" "series/$TITLE.jpg")> /dev/null -lt 700 ]; then
         if ! grep -q "$OUTPUT" whitelist; then
             echo "$OUTPUT -- image dimension error" >> stoday.txt; return 1
         fi
     fi
-    set +xe; while [ -e $JUNK/"$OUTPUT.site" ]; do sleep 5; continue; done; set -xe
-    cat $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.links"
     FINALIZE
 }
 start=`date +%s`
@@ -200,7 +208,7 @@ case "$1" in
         for PARAM; do grep 'http' <<< "$PARAM" >> $JUNK/url || grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/pattern; done;;
     *)  exit;;
 esac
-( while IFS= read -r "U"; do
+(while IFS= read -r "U"; do
     curl $ARGS "$U" | grep -oE "https.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d' > "$JUNK/main" || exit
     sed '/search/d; /^$/d' $JUNK/main | grep -n . > $JUNK/mains; mv $JUNK/mains $JUNK/main
     if [ -e $JUNK/pattern ]; then
@@ -208,12 +216,12 @@ esac
     else
         output=$(sed "s:.*>::; s: - SEASON.*::" "$JUNK/main")
     fi
-    ( while IFS= read -r "OUTPUT"; do
+    (while IFS= read -r "OUTPUT"; do
         FUNC &
         echo "$!" >> "$JUNK/pid"
-    done <<< $output ) &
+    done <<< $output; exit) &
     echo "$!" >> "$JUNK/pid"
-done < $JUNK/url ) &
+done < $JUNK/url; exit) &
 echo "$!" >> "$JUNK/pid"
 while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; done
 echo -e ":: working...done!"
