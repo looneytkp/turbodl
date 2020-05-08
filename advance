@@ -63,7 +63,7 @@ CROSS_CHECK(){  ###fix
         break
     done
     if [ $(jq length $JUNK/"$OUTPUT.wp_results") == 0 ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" $JUNK/"$OUTPUT.wp_results")"; then
-        sed -i "/$TITLE/d" $LIST
+        sed -i "/$TITLE/d" series_list
     fi
 }
 FUNC(){
@@ -117,7 +117,7 @@ FUNC(){
     (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/${OUTPUT}_eztv.log" 2>&1
     declare -a PID; I=1; J=100; A=0
     while true; do
-        EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I")
+        set +x; EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I"); set -x
         if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/"$OUTPUT.site"; exit; fi
         (set +xe
         while [ $A -lt $(jq -r '.torrents | length' <<< "$EZTV_API") ]; do
@@ -149,18 +149,17 @@ set -xe
             fi
         fi
         if ! grep -qi "Season $D" $JUNK/"$OUTPUT.mg" 2> /dev/null; then echo -e "\\n<h5>Season $D</h5>" >> $JUNK/"$OUTPUT.mg"; fi
+        grep -i "$TAG" $JUNK/"$OUTPUT.magnets" | grep -vE '(480|720|1080|2160)p' >> $JUNK/"$OUTPUT.mg" || true
         for PXL in "${PXLS[@]}"; do
-            grep -i "$TAG" $JUNK/"$OUTPUT.magnets" | grep -vE '(480|720|1080|2160)p' >> $JUNK/"$OUTPUT.mg" || true
-            grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.magnets" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.magnets" | grep -iE "$TAG.*($PXL|${PXL}p)")">> $JUNK/"$OUTPUT.mg" || true
-            grep -qiE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x264\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
-            grep -qiE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x265\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
+            grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/"$OUTPUT.magnets" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/"$OUTPUT.magnets" | grep -iE "$TAG.*($PXL|${PXL}p)")">> $JUNK/"$OUTPUT.mg" || true
+            grep -qiE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x264\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
+            grep -qiE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x265\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
             continue
         done
         D=$((D+1))
     done
-    mv $JUNK/"$OUTPUT.mg" $JUNK/"$OUTPUT.magnets"; sed -i "1s:^:\n<h3>Magnets\:</h3>:" $JUNK/"$OUTPUT.magnets"
-    rm $JUNK/"$OUTPUT.site"; exit
-    ) &
+    mv $JUNK/"$OUTPUT.mg" $JUNK/"$OUTPUT.magnets"
+    sed -i "1s:^:\n<h3>Magnets\:</h3>:" $JUNK/"$OUTPUT.magnets"; rm $JUNK/"$OUTPUT.site"; exit) &
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
     grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> stoday.txt && return 1
     YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
@@ -233,7 +232,7 @@ done < $JUNK/url; exit) &
 echo "$!" >> "$JUNK/pid"
 while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; sleep 5; done
 if [ ! -e stoday.txt ]; then
-    echo 'null posts'
+    echo 'null posts'; exit
 else
     if [ "$USER" == $SERVER ]; then
         if [ -e $JUNK/titles.txt ]; then
