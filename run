@@ -1,0 +1,28 @@
+#!/bin/env bash
+set -xe
+RUN(){
+    COUNT=1; COUNT1=0; declare -a PID
+    echo '---script starts above this---' > $FILE
+    while true; do
+        POSTS=$(curl -s -X GET "$URL=$COUNT&per_page=100")
+        if grep -q 'rest_post_invalid_page_number' <<< "$POSTS"; then break; fi
+        while [ $COUNT1 -le $(jq length <<< "$POSTS") ]; do
+            echo "$(jq -r ".[$COUNT1].title.rendered" <<< "$POSTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./") %$(jq -r ".[$COUNT1].modified_gmt" | sed 's:-::g; s:T.*::')" #>> $FILE
+        done #) &
+        PID+=($!)
+        COUNT1=0; COUNT=$((COUNT+1))
+    done
+    PID=$(echo ${PID[@]}|tr " " "|")
+    while grep -Eowq "$PID" <<< $(ls /proc); do sleep 5; continue; done
+}
+DIR=~/.turbodl
+case "$1" in
+    -A) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
+        printf ':: updating movie database...'; RUN; echo 'done!'
+        FILE=$DIR/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
+        printf ':: updating series database...'; RUN; echo 'done!';;
+    -M|-m) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
+        printf ':: updating movie database...'; RUN; echo 'done!';;
+    -S|-s) FILE=$DIR/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
+        printf ':: updating series database...'; RUN; echo 'done!';;
+esac
