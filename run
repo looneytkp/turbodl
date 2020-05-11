@@ -1,28 +1,43 @@
 #!/bin/env bash
-set -xe
+set -e
+sig_abort(){
+    kill -9 $(echo ${PID[@]})
+    return 1
+}
 RUN(){
     COUNT=1; COUNT1=0; declare -a PID
     echo '---script starts above this---' > $FILE
     while true; do
         POSTS=$(curl -s -X GET "$URL=$COUNT&per_page=100")
         if grep -q 'rest_post_invalid_page_number' <<< "$POSTS"; then break; fi
-        while [ $COUNT1 -le $(jq length <<< "$POSTS") ]; do
-            echo "$(jq -r ".[$COUNT1].title.rendered" <<< "$POSTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./") %$(jq -r ".[$COUNT1].modified_gmt" | sed 's:-::g; s:T.*::')" #>> $FILE
-        done #) &
+        (while [ $COUNT1 -le $(jq length <<< "$POSTS") ]; do
+            if [ "$1" == -d ]; then
+                DELETE_WP_POST(){
+                    curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/posts/$(jq ".[$COUNT1].id" <<< "$POSTS")" > /dev/null
+                    curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/media/$(jq ".[$COUNT1].featured_media" <<< "$POSTS")?force=true" > /dev/null
+                }
+                jq -r ".[$COUNT1].link" <<< "$POSTS" | grep -q -- "-[0-9]/$" && DELETE_WP_POST && echo "$(jq -r ".[$COUNT1].title.rendered" <<< "$POSTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./")" >> $DIR/deleted && COUNT1=$((COUNT1+1)) && continue || true
+            fi
+            echo "$(jq -r ".[$COUNT1].title.rendered" <<< "$POSTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./") %$(jq -r ".[$COUNT1].modified_gmt" <<< "$POSTS"| sed 's:-::g; s:T.*::')" >> $FILE
+            COUNT1=$((COUNT1+1))
+        done) &
         PID+=($!)
         COUNT1=0; COUNT=$((COUNT+1))
     done
     PID=$(echo ${PID[@]}|tr " " "|")
     while grep -Eowq "$PID" <<< $(ls /proc); do sleep 5; continue; done
 }
+trap sig_abort SIGINT
 DIR=~/.turbodl
 case "$1" in
-    -A) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
-        printf ':: updating movie database...'; RUN; echo 'done!'
+    -A) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"; R='turbodl'
+        printf ':: updating movie database...'; RUN $2; echo 'done!'
         FILE=$DIR/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
-        printf ':: updating series database...'; RUN; echo 'done!';;
-    -M|-m) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"
-        printf ':: updating movie database...'; RUN; echo 'done!';;
+        R='series.turbodl'
+        printf ':: updating series database...'; RUN $2; echo 'done!';;
+    -M|-m) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"; R='turbodl'
+        printf ':: updating movie database...'; RUN $2; echo 'done!';;
     -S|-s) FILE=$DIR/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
-        printf ':: updating series database...'; RUN; echo 'done!';;
+        R='series.turbodl'
+        printf ':: updating series database...'; RUN $2; echo 'done!';;
 esac
