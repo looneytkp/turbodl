@@ -180,13 +180,13 @@ set -xe
     set +xe; while [ -e $JUNK/"$OUTPUT.site" ]; do sleep 5; continue; done; set -xe
     if [ -e $JUNK/"$OUTPUT.magnets" ]; then
         cat $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.links"
-        if [ ! $CHECK ]; then echo "$OUTPUT -- no links" >> stoday.txt; fi
+        if [ ! $CHECK ]; then echo "$OUTPUT no links" >> stoday.txt; fi
     else
         if [ ! $CHECK ]; then
             echo "$OUTPUT -- no links & magnets" >> stoday.txt
             sig_abort 1
         else
-            echo "$OUTPUT -- no magnets" >> stoday.txt
+            echo "$OUTPUT no magnets" >> stoday.txt
         fi
     fi
     curl $ARGS "$POSTER" -o "series/$TITLE".jpg
@@ -198,9 +198,10 @@ set -xe
     FINALIZE
     #fix
     if grep -qowF "$TITLE" series_list; then
-            echo "$OUTPUT -- updated" >> stoday.txt
+            ! grep -q "$OUTPUT" stoday.txt && echo "$OUTPUT -- updated" >> stoday.txt || sed -i "s:$OUTPUT:$OUTPUT -- updated with:" stoday.txt
+            sed -i "s/$TITLE.*/$TITLE %$(date +%Y%m%d)/" series_list
     else
-        echo "$OUTPUT -- published" >> stoday.txt
+        ! grep -q "$OUTPUT" stoday.txt && echo "$OUTPUT -- published" >> stoday.txt || sed -i "s:$OUTPUT:$OUTPUT -- published with:" stoday.txt
         #if [ "$2" != --test ]; then
         sed -i "1s/^/$(sed 's/&/\\&/g' <<< "$TITLE") %$(date +%Y%m%d)\\n/" series_list
     fi
