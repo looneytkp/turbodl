@@ -2,7 +2,7 @@
 set -ex
 DIR=~/.turbodl
 if [ -d "$DIR" ]; then cd "$DIR"; fi
-zip -r turbo.zip * -x md5 -x tasks -x site -x url -x one -x two -x links -x titles.txt -x *list
+zip -r turbo.zip * -x md5 -x *list
 cat *today.txt > text
 if [ ! -e md5 ]; then md5sum turbo.zip > md5; exit; fi
 if [ $(md5sum turbo.zip | sed 's/  .*//') == $(grep 'turbo' md5 | sed 's/  .*//') ]; then
