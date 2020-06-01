@@ -229,9 +229,9 @@ case "$1" in
     *)  exit;;
 esac
 (while IFS= read -r "U"; do
+    #curl $ARGS "$U" | grep -o "http.*search.*</a>" out | sed 's:</a>:\n:g' | grep "target" | sed 's:" target.*">:">:; s:.*http:http:; s:</.*::' > $JUNK/main
     curl $ARGS "$U" | grep -oE "http.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d; / [0-9][0-9][0-9][0-9] /d; / [0-9][0-9][0-9][0-9]/d' > "$JUNK/main" || exit
     sed '/search/d; /^$/d' $JUNK/main | grep -n . > $JUNK/mains; mv $JUNK/mains $JUNK/main
-exit
     if [ -e $JUNK/pattern ]; then
         output=$(grep -w -f $JUNK/pattern $JUNK/main | sed "s:.*>::; s: - SEASON.*::")
     else
