@@ -1,5 +1,3 @@
-<iframe src="https://www.youtube-nocookie.com/embed/QH2-TGUlwu4?autoplay=1&modestbranding=1&showinfo=0&rel=0" width="500" height="300" frameborder="0"></iframe>
-
-https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key=<<api_key>>&language=en-US
-
-curl -s "http://api.icndb.com/jokes/random" | jq -r '.value.joke'
+fix blindspot and siren reuploading on the site
+fix url argument
+fix twitch code for series
