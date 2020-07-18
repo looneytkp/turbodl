@@ -157,15 +157,25 @@ set -xe
             fi
         fi
         if ! grep -qi "Season $D" $JUNK/"$OUTPUT.mg" 2> /dev/null; then echo -e "\\n<h5>Season $D</h5>" >> $JUNK/"$OUTPUT.mg"; fi
-        grep -i "$TAG" $JUNK/"$OUTPUT.magnets" | grep -vE '(480|720|1080|2160)p' >> $JUNK/"$OUTPUT.mg" || true
+        #grep -i "$TAG" $JUNK/"$OUTPUT.magnets" | grep -vE '(480|720|1080|2160)p' >> $JUNK/"$OUTPUT.mg" || true
+        #for PXL in "${PXLS[@]}"; do
+        #    grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/"$OUTPUT.magnets" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/"$OUTPUT.magnets" | grep -iE "$TAG.*($PXL|${PXL}p)")">> $JUNK/"$OUTPUT.mg" || true
+        #    grep -qiE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x264\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
+        #    grep -qiE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x265\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
+        #    continue
+        #done
+        grep -io ">.*$TAG.*" $JUNK/"$OUTPUT.magnets" | grep -io "$TAG.*" | grep -vE '(480|720|1080|2160)p' | sort -h > $JUNK/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.mg"; done < $JUNK/sorts || true
         for PXL in "${PXLS[@]}"; do
             grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/"$OUTPUT.magnets" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/"$OUTPUT.magnets" | grep -iE "$TAG.*($PXL|${PXL}p)")">> $JUNK/"$OUTPUT.mg" || true
-            grep -qiE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x264\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
-            grep -qiE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x265\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets")" >> $JUNK/"$OUTPUT.mg" || true
+
+            grep -qiE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x264\\n" >> $JUNK/"$OUTPUT.mg" && grep -iE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets" | grep -io "$TAG.*" | sort -n > $JUNK/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.mg"; done < $JUNK/sorts || true
+
+            grep -qiE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x265\\n" >> $JUNK/"$OUTPUT.mg" && grep -iE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets" | grep -io "$TAG.*" | sort -n > $JUNK/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.mg"; done < $JUNK/sorts || true
             continue
         done
         D=$((D+1))
     done
+    return 1
     mv $JUNK/"$OUTPUT.mg" $JUNK/"$OUTPUT.magnets"
     sed -i "1s:^:\n<h3>Magnets\:</h3>:" $JUNK/"$OUTPUT.magnets"; rm $JUNK/"$OUTPUT.site"; exit) &
     echo $! | tee -a $JUNK/pids $JUNK/"$OUTPUT.pids"
@@ -229,9 +239,14 @@ case "$1" in
     *)  exit;;
 esac
 (while IFS= read -r "U"; do
-    #curl $ARGS "$U" | grep -o "http.*search.*</a>" out | sed 's:</a>:\n:g' | grep "target" | sed 's:" target.*">:">:; s:.*http:http:; s:</.*::' > $JUNK/main
-    curl $ARGS "$U" | grep -oE "http.*html.*(|title).*</a>" | sed 's:</a>:\n:g; /Releases/d; /Movies/d; /jpg/d; /Series/d; /List/d; /Read More/d; /GAME OF THRONES/d; /gfn/d; /COVID-19/d; / [0-9][0-9][0-9][0-9] /d; / [0-9][0-9][0-9][0-9]/d' > "$JUNK/main" || exit
-    sed '/search/d; /^$/d' $JUNK/main | grep -n . > $JUNK/mains; mv $JUNK/mains $JUNK/main
+    set -x
+    if grep -q "lightdl" <<< "$U"; then
+        curl $ARGS "$U" | grep -Eo "http(|s).*html.*title=.*</a>" | sed 's:</a>.*::' > $JUNK/main || exit
+    elif grep -q "twitchdl" <<< "$U"; then
+        curl $ARGS "$U" | grep -Eo "http(|s).*html.*</a>" | sed 's:</a>.*::; /Series/d; /Movies/d; /-list/d; /href/d; /covid-19/d; /jpg/d; /Share this/d; /releases/d; /vals-day/d; /Read More/d; /search/d' > "$JUNK/main" || exit
+    fi
+    grep -n . $JUNK/main > $JUNK/mains; mv $JUNK/mains $JUNK/main
+    if grep -q -- "--list" <<< "$@"; then cat $JUNK/main | sed 's:http.*>::' && sig_abort; fi
     if [ -e $JUNK/pattern ]; then
         output=$(grep -w -f $JUNK/pattern $JUNK/main | sed "s:.*>::; s: - SEASON.*::")
     else
