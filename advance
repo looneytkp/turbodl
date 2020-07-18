@@ -125,10 +125,9 @@ FUNC(){
     (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/${OUTPUT}_eztv.log" 2>&1
     declare -a PID; I=1; J=100; A=0
     while true; do
-        #set +x;
-        EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I"); #set -x
+        set +x; EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I"); set -x
         if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/"$OUTPUT.site"; exit; fi
-        (#set +xe
+        (set +xe
         while [ $A -lt $(jq -r '.torrents | length' <<< "$EZTV_API") ]; do
             echo "<a href=$(jq ".torrents | .[$A].magnet_url" <<< "$EZTV_API")>$(jq -r ".torrents | .[$A].title" <<< "$EZTV_API") [torrent] (turbodl.xyz)</a> - $(($(jq -r ".torrents | .[$A].size_bytes" <<< "$EZTV_API") / 2**20))MB" >> "$JUNK/$OUTPUT.mg"
             A=$((A+1))
@@ -139,14 +138,14 @@ FUNC(){
         fi
         break
     done
-#set +xe
+set +xe
     PID=$(echo ${PID[@]}|tr " " "|")
     while grep -Eowq "$PID" <<< $(ls /proc); do sleep 10; continue; done
     while IFS= read -r "MAG"; do
         grep -F "$MAG" $JUNK/"$OUTPUT.mg" >> $JUNK/"$OUTPUT.magnets"
     done <<< $(grep -o ">.*" "$JUNK/$OUTPUT.mg" | sort -n)
     rm $JUNK/"$OUTPUT.mg"
-#set -xe
+set -xe
     D=1
     while true; do
         if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
