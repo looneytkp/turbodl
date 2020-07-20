@@ -127,6 +127,7 @@ FUNC(){
     while true; do
         #set +x;
         EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I" || true)
+        if [ "$EZTV_API" == '' ]; then exit 1; fi
         #set -x
         if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/"$OUTPUT.site"; exit; fi
         (set +xe
