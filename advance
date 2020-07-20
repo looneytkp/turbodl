@@ -141,6 +141,7 @@ FUNC(){
         fi
         break
     done
+    if [ ! -e $JUNK/"$OUTPUT.mg" ]; then return 1; fi
 set +xe
     PID=$(echo ${PID[@]}|tr " " "|")
     while grep -Eowq "$PID" <<< $(ls /proc); do sleep 10; continue; done
