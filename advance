@@ -62,7 +62,9 @@ CROSS_CHECK(){  ###fix
                 if cmp $JUNK/"$OUTPUT.wp" $JUNK/"$OUTPUT.dl"; then
                     echo 'no need to update'; sig_abort 1; return 1
                 else
-                    if [ "$USER" == "$SERVER" ]; then DELETE_WP_POST; fi; echo "deleted $OUTPUT"
+                    if [ "$USER" == "$SERVER" ]; then
+                        if ! grep -q -- "--test" <<< "$@"; then DELETE_WP_POST; fi; echo "deleted $OUTPUT"
+                    fi
                 fi
             fi
         else
@@ -176,18 +178,17 @@ set -xe
     YEAR=$(sed 's/–/, /' <<< $YEAR); CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API"); RATING=$(jq -r '.imdbRating' <<< "$OMDB_API"); PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
     grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" <<< $WHITELIST && sig_abort 1
     if ! grep -q "$OUTPUT" <<< $WHITELIST; then if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> stoday.txt && sig_abort 1; fi; fi
-    grep -owF "$TITLE" series_list && if ! grep -q -- "--test" <<< "$@"; then if [ $(($(date +%Y%m%d)-$(grep -ow "$TITLE.*" series_list | grep -o '%.*' | sed 's:%::'))) -le 5 ]; then echo "$OUTPUT -- published within 5days" >> stoday.txt; sig_abort 1; else CROSS_CHECK; fi; else CROSS_CHECK; fi
+    grep -owF "$TITLE" series_list && if ! grep -q -- "--test" <<< "$@"; then if [ $(($(date +%Y%m%d)-$(grep -ow "$TITLE.*" series_list | grep -o '%.*' | sed 's:%::'))) -le 5 ]; then echo "$OUTPUT -- published within 5days" >> stoday.txt; sig_abort 1; else CROSS_CHECK "$@"; fi; else CROSS_CHECK "$@"; fi
     PARSE
     set +xe; while [ -e $JUNK/"$OUTPUT.site" ]; do sleep 5; continue; done; set -xe
     if [ -e $JUNK/"$OUTPUT.magnets" ]; then
         cat $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.links"
-        if [ ! $CHECK ]; then echo "$OUTPUT no links" >> stoday.txt; fi
+        if [ ! $CHECK ]; then STATUS="with only magnets"; else STATUS="with links & magnets"; fi
     else
         if [ ! $CHECK ]; then
-            echo "$OUTPUT -- no links & magnets" >> stoday.txt
-            sig_abort 1
+            echo "$OUTPUT -- not published :no links or magnets" >> stoday.txt; sig_abort 1
         else
-            echo "$OUTPUT no magnets" >> stoday.txt
+            STATUS="with only links"
         fi
     fi
     curl $ARGS "$POSTER" -o "series/$TITLE".jpg
@@ -199,10 +200,10 @@ set -xe
     FINALIZE
     #fix
     if grep -qowF "$TITLE" series_list; then
-            ! grep -q "$OUTPUT" stoday.txt && echo "$OUTPUT -- updated" >> stoday.txt || sed -i "s:$OUTPUT:$OUTPUT -- updated with:" stoday.txt
+            echo "$OUTPUT -- updated $STATUS" >> stoday.txt
             sed -i "s/$TITLE.*/$TITLE %$(date +%Y%m%d)/" series_list
     else
-        ! grep -q "$OUTPUT" stoday.txt && echo "$OUTPUT -- published" >> stoday.txt || sed -i "s:$OUTPUT:$OUTPUT -- published with:" stoday.txt
+        echo "$OUTPUT -- published $STATUS" >> stoday.txt
         if ! grep -q -- "--test" <<< "$@"; then
             sed -i "1s/^/$(sed 's/&/\\&/g' <<< "$TITLE") %$(date +%Y%m%d)\\n/" series_list
         fi
