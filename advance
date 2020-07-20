@@ -125,7 +125,10 @@ FUNC(){
     (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/${OUTPUT}_eztv.log" 2>&1
     declare -a PID; I=1; J=100; A=0
     while true; do
-        set +x; EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I" || return 1); set -x
+        #set +x;
+        EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I" || return 1)
+sig_abort
+        #set -x
         if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/"$OUTPUT.site"; exit; fi
         (set +xe
         while [ $A -lt $(jq -r '.torrents | length' <<< "$EZTV_API") ]; do
@@ -232,7 +235,7 @@ esac
     if grep -q "lightdl" <<< "$U"; then
         curl $ARGS "$U" | grep -Eo "http(|s).*html.*title=.*</a>" | sed 's:</a>.*::' > $JUNK/main || exit
     elif grep -q "twitchdl" <<< "$U"; then
-        curl $ARGS "$U" | grep -Eo "http(|s).*html.*</a>" | sed 's:</a>.*::; /Series/d; /Movies/d; /-list/d; /href/d; /covid-19/d; /jpg/d; /Share this/d; /releases/d; /vals-day/d; /Read More/d; /search/d' > "$JUNK/main" || exit
+        curl $ARGS "$U" | grep -Eo "http(|s).*html.*</a>" | sed 's:</a>.*::; /Series/d; /Movies/d; /-list/d; /href/d; /covid-19/d; /jpg/d; /Share this/d; /releases/d; /vals-day/d; /Read More/d; /search/d; / [0-9][0-9][0-9][0-9] HD/d' > "$JUNK/main" || exit
     fi
     grep -n . $JUNK/main > $JUNK/mains; mv $JUNK/mains $JUNK/main
     if grep -q -- "--list" <<< "$@"; then
@@ -241,7 +244,7 @@ esac
     if [ -e $JUNK/pattern ] && [ $(wc -l<$JUNK/pattern) -gt 0 ]; then
         output=$(grep -w -f $JUNK/pattern $JUNK/main | sed "s:.*>::; s: - SEASON.*::")
     else
-        output=$(sed "s:.*>::; s: - SEASON.*::" "$JUNK/main")
+        output=$(sed "s:.*>::; s: - SEASON.*::; s: - Season.*::" "$JUNK/main")
     fi
     (while IFS= read -r "OUTPUT"; do
         FUNC "$@" &
