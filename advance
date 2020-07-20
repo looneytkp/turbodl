@@ -125,10 +125,8 @@ FUNC(){
     (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/${OUTPUT}_eztv.log" 2>&1
     declare -a PID; I=1; J=100; A=0
     while true; do
-        #set +x;
         EZTV_API=$(curl $ARGS --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I" || true)
-        if [ "$EZTV_API" == '' ]; then exit 1; fi
-        #set -x
+        if [ "$EZTV_API" == '' ]; then break; fi
         if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/"$OUTPUT.site"; exit; fi
         (set +xe
         while [ $A -lt $(jq -r '.torrents | length' <<< "$EZTV_API") ]; do
@@ -205,8 +203,9 @@ set -xe
             sed -i "s/$TITLE.*/$TITLE %$(date +%Y%m%d)/" series_list
     else
         ! grep -q "$OUTPUT" stoday.txt && echo "$OUTPUT -- published" >> stoday.txt || sed -i "s:$OUTPUT:$OUTPUT -- published with:" stoday.txt
-        #if [ "$2" != --test ]; then
-        sed -i "1s/^/$(sed 's/&/\\&/g' <<< "$TITLE") %$(date +%Y%m%d)\\n/" series_list
+        if ! grep -q -- "--test" <<< "$@"; then
+            sed -i "1s/^/$(sed 's/&/\\&/g' <<< "$TITLE") %$(date +%Y%m%d)\\n/" series_list
+        fi
     fi
     echo "$TITLE %$OUTPUT".txt >> $JUNK/titles.txt
 }
@@ -260,13 +259,15 @@ while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r";
 if [ ! -e stoday.txt ]; then
     exit
 else
-    if [ "$USER" == $SERVER ]; then
-        if [ -e $JUNK/titles.txt ]; then
-            SORTED_POSTS=$(sort -Rr < $JUNK/titles.txt)
-            MAIL='Ahd8s7a8a9skA@turbodl.xyz'
-            while IFS= read -r TITLES; do
-                echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i series/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a series/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL
-            done < $JUNK/titles.txt
+    if ! grep -q -- "--test" <<< "$@"; then
+        if [ "$USER" == $SERVER ]; then
+            if [ -e $JUNK/titles.txt ]; then
+                SORTED_POSTS=$(sort -Rr < $JUNK/titles.txt)
+                MAIL='Ahd8s7a8a9skA@turbodl.xyz'
+                while IFS= read -r TITLES; do
+                    echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i series/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a series/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL
+                done < $JUNK/titles.txt
+            fi
         fi
     fi
 fi
