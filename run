@@ -41,3 +41,6 @@ case "$1" in
         R='series.turbodl'
         printf ':: updating series database...'; RUN $2; echo 'done!';;
 esac
+if [ -e $DIR/deleted ]; then
+    echo | mutt -s 'turbodlbot| deleted list' -i $DIR/deleted -- persie@turbodl.xyz
+fi
