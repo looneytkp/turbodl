@@ -27,8 +27,14 @@ PARSE(){
     fi
     D=1
     while true; do
-        if [ $D -gt 9 ]; then TAG="s$D"; TAGG="e$D"; else TAG="S0$D"; TAGG="e0$D"; fi
-        if ! grep -qiE "($TAG|$TAGG)" $JUNK/"$OUTPUT.links"; then
+        if [ $D -le 9 ]; then
+            TAG="S0$D"; TAGG="e0$D"; TAGGG="0$D"
+        elif [ $D -gt 9 ]; then
+            TAG="s$D"; TAGG="e$D"; TAGGG="$D"
+        #elif [ $D -gt 99 ]; then
+        #    TAGGG="1$D"
+        fi
+        if ! grep -qiE "($TAG|$TAGG|$TAGGG)" $JUNK/"$OUTPUT.links"; then
             if [ ! -e $JUNK/"$OUTPUT.link" ]; then
                 if [ $D == 10 ]; then unset CHECK; rm $JUNK/"$OUTPUT.links"; return; else D=$((D+1)); continue; fi
             else
@@ -44,6 +50,14 @@ PARSE(){
                 #grep -qiE "$TAGG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.links" && echo -e "$(grep -iE "$TAGG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
                 continue
             done
+        elif grep -qi 'anime' <<< "$OUTPUT"; then
+            break #find better parsing code for anime
+            #echo -e "" >> $JUNK/"$OUTPUT.link"
+            #for PXL in "${PXLS[@]}"; do
+                #grep -i "$TAGGG" $JUNK/"$OUTPUT.links" | grep -vE '(360|480|540|720|1080|2160)p' >> $JUNK/"$OUTPUT.link" || true
+                #grep -ivE "$TAGGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -qiE "$TAGGG.*($PXL|${PXL}p)" && echo -e "$(grep -ivE "$TAGGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -iE "$TAGGG.*($PXL|${PXL}p)")" >> $JUNK/"$OUTPUT.link" || true
+            #    continue
+            #done
         else
             if ! grep -qi "Season $D" $JUNK/"$OUTPUT.link" 2> /dev/null; then echo -e "\\n<h5>Season $D</h5>" >> $JUNK/"$OUTPUT.link"; fi
             for PXL in "${PXLS[@]}"; do
@@ -56,7 +70,7 @@ PARSE(){
         fi
         D=$((D+1))
     done
-    mv $JUNK/"$OUTPUT.link" $JUNK/"$OUTPUT.links")
+    if [ -e $JUNK/"$OUTPUT.link" ]; then mv $JUNK/"$OUTPUT.link" $JUNK/"$OUTPUT.links"; fi)
 }
 CROSS_CHECK(){  ###fix
     DELETE_WP_POST(){
@@ -94,9 +108,16 @@ FUNC(){
     set -xe; echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
     if grep -q "$OUTPUT" <<< $BLACKLIST; then echo "$OUTPUT -- blacklisted"; return 1; fi #blaclist if title is in blacklist file
     curl $ARGS $(grep "$OUTPUT" "$JUNK/main" | grep -o http.*html) > "$JUNK/$OUTPUT.site" || exit #download series page
-    grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]|E[0-9][0-9]).*(mkv|mp4|avi).*</a>" "$JUNK/$OUTPUT.site" | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > "$JUNK/$OUTPUT.links"
+    grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]|(E[0-9][0-9]|E[0-9][0-9][0-9])|([0-9][0-9]|[0-9][0-9][0-9])).*(mkv|mp4|avi).*</a>" "$JUNK/$OUTPUT.site" | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > "$JUNK/$OUTPUT.links"
     sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
     grep -q 'http' $JUNK/"$OUTPUT.links" && CHECK=1
+    if grep -qi 'korean' <<< "$OUTPUT"; then
+        INSERT=' (Korean) '
+    elif grep -qi 'anime' <<< "$OUTPUT"; then
+        INSERT=' (Anime) '
+    else
+        INSERT=' '
+    fi
     NAME=$(sed "s: -.*Season.*::; s: (Korean Series)::; s: (Anime)::" <<< "$OUTPUT")
     grep -q "$OUTPUT=" <<< $WHITELIST && NAME=$(sed "/$OUTPUT/!d; s/.*$OUTPUT=//; s/\".*//")
     TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&" || exit)
@@ -186,7 +207,7 @@ set -xe
     echo $! | tee -a $JUNK/pids $JUNK/"$OUTPUT.pids"
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
     grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> stoday.txt && sig_abort 1
-    YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API") ($YEAR)"
+    YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API")$INSERT($YEAR)"
     YEAR=$(sed 's/–/, /' <<< $YEAR); CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API"); RATING=$(jq -r '.imdbRating' <<< "$OMDB_API"); PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
     grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" <<< $WHITELIST && sig_abort 1
     if ! grep -q "$OUTPUT" <<< $WHITELIST; then if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> stoday.txt && sig_abort 1; fi; fi
