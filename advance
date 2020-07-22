@@ -191,7 +191,7 @@ FUNC(){
             echo "<a href=$(jq ".torrents | .[$A].magnet_url" <<< "$EZTV_API")>$(jq -r ".torrents | .[$A].title" <<< "$EZTV_API") [torrent] (turbodl.xyz)</a> - $(($(jq -r ".torrents | .[$A].size_bytes" <<< "$EZTV_API") / 2**20))MB" >> "$JUNK/$OUTPUT.mg"
             A=$((A+1))
         done; exit) &
-        PID+=($!); echo $! | tee -a $JUNK/pids $JUNK/"$OUTPUT.pids"
+        set +x; PID+=($!); echo $! | tee -a $JUNK/pids $JUNK/"$OUTPUT.pids"; set -x
         if [ $(jq '.torrents_count' <<< "$EZTV_API") -gt $J ]; then
             I=$((I+1)); J=$((J+100)); A=0; continue
         fi
@@ -228,7 +228,7 @@ set -xe
     done
     mv $JUNK/"$OUTPUT.mg" $JUNK/"$OUTPUT.magnets"
     sed -i "1s:^:\n<h3>Magnets\:</h3>\n:" $JUNK/"$OUTPUT.magnets"; rm $JUNK/"$OUTPUT.site"; exit) &
-    echo $! | tee -a $JUNK/pids $JUNK/"$OUTPUT.pids"
+    set +x; echo $! | tee -a $JUNK/pids $JUNK/"$OUTPUT.pids"; set -x
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
     grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> stoday.txt && sig_abort 1
     YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API")$INSERT($YEAR)"

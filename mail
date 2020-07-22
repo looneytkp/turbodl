@@ -1,15 +1,15 @@
 #!/bin/env bash
-#set -ex
+set -e
 DIR=~/.turbodl
 if [ -d "$DIR" ]; then cd "$DIR"; fi
-zip -rq turbo.zip * -x md5 -x *list
+zip -rq turbo.zip * -x md5 -x *list -x junk/pid*
 if [ -e mtoday.txt ]; then cat mtoday.txt > text; elif [ -e stoday.txt ]; then cat stoday.txt > text; fi
-if [ ! -e md5 ]; then md5sum turbo.zip > md5; exit; fi
-if [ $(md5sum turbo.zip | sed 's/  .*//') == $(grep 'turbo' md5 | sed 's/  .*//') ]; then
-    exit
-else
+#if [ ! -e md5 ]; then md5sum turbo.zip > md5; fi
+#if [ $(md5sum turbo.zip | sed 's/  .*//') == $(grep 'turbo' md5 | sed 's/  .*//') ]; then
+#    exit
+#else
     sed -i "s/.*turbo.*/$(md5sum turbo.zip)/" md5
-    if [ "$USER" == 'root' -o "$USER" == '' ]; then
+    if [ "$USER" == 'root' ]; then
         echo | mutt -s 'turbodlbot' -i text -a turbo.zip -- persie@turbodl.xyz
     fi
-fi
+#fi
