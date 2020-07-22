@@ -145,7 +145,10 @@ FUNC(){
     if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT -- not found" >> stoday.txt; return 1; fi
     A=0
     while true; do
-        if [ $(jq -r ".results[$A] | .first_air_date" <<< "$TMDB_API" | sed 's:-::g') -lt 19991201 ]; then
+        if [ "$(jq -r ".results[$A] | .first_air_date" <<< "$TMDB_API" | sed 's:-::g')" == null ]; then
+            echo "$OUTPUT -- less than 1999" >> stoday.txt; sig_abort 1
+        fi
+        if [ "$(jq -r ".results[$A] | .first_air_date" <<< "$TMDB_API" | sed 's:-::g')" -lt 19991201 ]; then
             A=$((A+1)); continue
         else
             if [ $(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API") != 'null' ]; then
@@ -273,7 +276,7 @@ start=`date +%s`
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'; SERVER="root"; LOCAL="persie"
 DIR=~/.turbodl; PXLS=(360 480 540 720 1080 2160);
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
-find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +
+find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +;  touch $JUNK/file
 if [ "$USER" == "$SERVER" ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
 printf %b ":: working...\\r"
 case "$1" in
@@ -305,8 +308,9 @@ esac
         output=$(sed "s:.*>::; s: - SEASON.*::; s: - Season.*::" "$JUNK/main")
     fi
     (while IFS= read -r "OUTPUT"; do
+        ! grep -q "$OUTPUT" $JUNK/file && echo "$OUTPUT" >> $JUNK/file || continue #skip duplicate URLs
         FUNC "$@" &
-        echo "$!" >> "$JUNK/pid"
+        echo "$!" >> $JUNK/pid
         echo $! >> $JUNK/pids
     done <<< $output; exit) &
     echo "$!" >> "$JUNK/pid"
