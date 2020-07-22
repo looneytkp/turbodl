@@ -8,7 +8,7 @@ if [ -e mtoday.txt ]; then cat mtoday.txt > text; elif [ -e stoday.txt ]; then c
 #if [ $(md5sum turbo.zip | sed 's/  .*//') == $(grep 'turbo' md5 | sed 's/  .*//') ]; then
 #    exit
 #else
-    sed -i "s/.*turbo.*/$(md5sum turbo.zip)/" md5
+    #sed -i "s/.*turbo.*/$(md5sum turbo.zip)/" md5
     if [ "$USER" == 'root' ]; then
         echo | mutt -s 'turbodlbot' -i text -a turbo.zip -- persie@turbodl.xyz
     fi
