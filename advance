@@ -276,8 +276,8 @@ start=`date +%s`
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'; SERVER="root"; LOCAL="persie"
 DIR=~/.turbodl; PXLS=(360 480 540 720 1080 2160);
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
-echo "$(date)" >> test
-find . ! -name '*list' ! -name 'md5' -name 'test' -type f -exec rm -rf {} +;  touch $JUNK/file
+echo "$(date)" >> md5
+find . ! -name '*list' ! -name 'md5' -name -type f -exec rm -rf {} +;  touch $JUNK/file
 if [ "$USER" == "$SERVER" ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
 printf %b ":: working...\\r"
 case "$1" in
@@ -293,7 +293,6 @@ case "$1" in
         for PARAM; do grep 'http' <<< "$PARAM" >> $JUNK/url || grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/pattern; done;;
     *)  exit;;
 esac
-set -x
 (while IFS= read -r "U"; do
     if grep -q "lightdl" <<< "$U"; then
         curl $ARGS "$U" | grep -Eo "http(|s).*html.*title=.*</a>" | sed 's:</a>.*::' > $JUNK/main || exit
@@ -343,7 +342,7 @@ end=`date +%s`
 runtime=$(echo -e "$end - $start" | bc -l)
 echo -e ":: $runtime seconds"
 if [ "$USER" == $SERVER ]; then bash /root/turbodl/mail; fi
-echo -e "$(date)\\n" >> test
+echo -e "$(date)\\n" >> md5
 #for series
 #curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks --header "Content-Type: application/json" 'https://eztv.io/api/get-torrents?imdb_id=6048596' | jq .
 #for movies
