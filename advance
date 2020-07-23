@@ -272,11 +272,12 @@ set -xe
     echo "$TITLE %$OUTPUT".txt >> $JUNK/titles.txt
 }
 trap sig_abort SIGINT
+echo "$(date)" >> test
 start=`date +%s`
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'; SERVER="root"; LOCAL="persie"
 DIR=~/.turbodl; PXLS=(360 480 540 720 1080 2160);
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
-find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +;  touch $JUNK/file
+find . ! -name '*list' ! -name 'md5' -name 'test' -type f -exec rm -rf {} +;  touch $JUNK/file
 if [ "$USER" == "$SERVER" ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
 printf %b ":: working...\\r"
 case "$1" in
@@ -342,6 +343,7 @@ end=`date +%s`
 runtime=$(echo -e "$end - $start" | bc -l)
 echo -e ":: $runtime seconds"
 if [ "$USER" == $SERVER ]; then bash /root/turbodl/mail; fi
+echo "$(date)\\n" >> test
 #for series
 #curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks --header "Content-Type: application/json" 'https://eztv.io/api/get-torrents?imdb_id=6048596' | jq .
 #for movies
