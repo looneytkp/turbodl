@@ -343,7 +343,7 @@ end=`date +%s`
 runtime=$(echo -e "$end - $start" | bc -l)
 echo -e ":: $runtime seconds"
 if [ "$USER" == $SERVER ]; then bash /root/turbodl/mail; fi
-echo "$(date)\\n" >> test
+echo -e "$(date)\\n" >> test
 #for series
 #curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks --header "Content-Type: application/json" 'https://eztv.io/api/get-torrents?imdb_id=6048596' | jq .
 #for movies
