@@ -292,6 +292,7 @@ case "$1" in
         for PARAM; do grep 'http' <<< "$PARAM" >> $JUNK/url || grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/pattern; done;;
     *)  exit;;
 esac
+set -x
 (while IFS= read -r "U"; do
     if grep -q "lightdl" <<< "$U"; then
         curl $ARGS "$U" | grep -Eo "http(|s).*html.*title=.*</a>" | sed 's:</a>.*::' > $JUNK/main || exit
