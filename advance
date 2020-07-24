@@ -185,7 +185,7 @@ FUNC(){
     while true; do
         EZTV_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I" || true)
         if [ "$EZTV_API" == '' ]; then rm $JUNK/"$OUTPUT.mg"; break; fi
-        if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/"$OUTPUT.site"; exit; fi
+        if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/"$OUTPUT.site" $JUNK/"$OUTPUT.mg"; exit; fi
         (set +xe
         while [ $A -lt $(jq -r '.torrents | length' <<< "$EZTV_API") ]; do
             echo "<a href=$(jq ".torrents | .[$A].magnet_url" <<< "$EZTV_API")>$(jq -r ".torrents | .[$A].title" <<< "$EZTV_API") [torrent] (turbodl.xyz)</a> - $(($(jq -r ".torrents | .[$A].size_bytes" <<< "$EZTV_API") / 2**20))MB" >> "$JUNK/$OUTPUT.mg"
@@ -329,7 +329,7 @@ else
                 SORTED_POSTS=$(sort -Rr < $JUNK/titles.txt)
                 MAIL='Ahd8s7a8a9skA@turbodl.xyz'
                 while IFS= read -r TITLES; do
-                    echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i series/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a series/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL
+                    echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i series/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a series/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL 2> errors || echo "$(sed "s/ %.*//" <<< "$TITLES") -- could not publish to site" >> stoday.txt
                 done < $JUNK/titles.txt
             fi
         fi
