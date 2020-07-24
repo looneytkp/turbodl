@@ -314,11 +314,12 @@ esac
         echo "$!" >> $JUNK/pid
         echo $! >> $JUNK/pids
     done <<< $output; exit) &
-    echo "$!" >> "$JUNK/pid"
+    echo "$!" >> $JUNK/pid
     echo $! >> $JUNK/pids
 done < $JUNK/url; exit) &
-echo "$!" >> "$JUNK/pid"
+echo "$!" >> $JUNK/pid
 echo $! >> $JUNK/pids
+sig_abort 1
 while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; sleep 5; done
 if [ ! -e stoday.txt ]; then
     exit
