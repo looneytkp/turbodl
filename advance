@@ -310,7 +310,7 @@ esac
     fi
     (while IFS= read -r "OUTPUT"; do
         ! grep -q "$OUTPUT" $JUNK/file && echo "$OUTPUT" >> $JUNK/file || continue #skip duplicate URLs
-        FUNC "$@" &
+        #FUNC "$@" &
         echo "$!" >> $JUNK/pid
         echo $! >> $JUNK/pids
     done <<< $output; exit) &
@@ -319,7 +319,6 @@ esac
 done < $JUNK/url; exit) &
 echo "$!" >> $JUNK/pid
 echo $! >> $JUNK/pids
-sig_abort 1
 while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; sleep 5; done
 if [ ! -e stoday.txt ]; then
     exit
