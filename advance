@@ -310,7 +310,7 @@ esac
     fi
     (while IFS= read -r "OUTPUT"; do
         ! grep -q "$OUTPUT" $JUNK/file && echo "$OUTPUT" >> $JUNK/file || continue #skip duplicate URLs
-        #FUNC "$@" &
+        FUNC "$@" &
         echo "$!" >> $JUNK/pid
         echo $! >> $JUNK/pids
     done <<< $output; exit) &
