@@ -30,7 +30,7 @@ RUN(){
 trap sig_abort SIGINT
 DIR=~/.turbodl
 case "$1" in
-    -A) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"; R='turbodl'
+    -A|-a) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"; R='turbodl'
         printf ':: updating movie database...'; RUN $2; echo 'done!'
         FILE=$DIR/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
         R='series.turbodl'

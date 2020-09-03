@@ -130,7 +130,7 @@ FUNC(){
     if grep -q "$OUTPUT" <<< $BLACKLIST; then echo "$OUTPUT -- blacklisted"; return 1; fi #blaclist if title is in blacklist file
     curl $ARGS $(grep "$OUTPUT" "$JUNK/main" | grep -o http.*html) > "$JUNK/$OUTPUT.site" || exit #download series page
     grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]|(E[0-9][0-9]|E[0-9][0-9][0-9])|([0-9][0-9]|[0-9][0-9][0-9])).*(mkv|mp4|avi).*</a>" "$JUNK/$OUTPUT.site" | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > "$JUNK/$OUTPUT.links"
-    sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
+    sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d; /Load more/d; /blogger.com/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
     grep -q 'http' $JUNK/"$OUTPUT.links" && CHECK=1
     if grep -qi 'korean' <<< "$OUTPUT"; then
         INSERT=' (Korean) '
@@ -233,7 +233,7 @@ set -xe
     grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> stoday.txt && sig_abort 1
     YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API")$INSERT($YEAR)"
     YEAR=$(sed 's/–/, /' <<< $YEAR); CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API"); RATING=$(jq -r '.imdbRating' <<< "$OMDB_API"); PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
-    grep -qiE '(documentary|reality-tv|talk-show)' <<< "$GENRE" && ! grep -q "$OUTPUT" <<< $WHITELIST && sig_abort 1
+    grep -qiE '(documentary|reality-tv|talk-show|Game-Show)' <<< "$GENRE" && ! grep -q "$OUTPUT" <<< $WHITELIST && sig_abort 1
     if ! grep -q "$OUTPUT" <<< $WHITELIST; then if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> stoday.txt && sig_abort 1; fi; fi
     grep -owF "$TITLE" series_list && if ! grep -q -- "--test" <<< "$@"; then if [ $(($(date +%Y%m%d)-$(grep -ow "$TITLE.*" series_list | grep -o '%.*' | sed 's:%::'))) -le 5 ]; then echo "$OUTPUT -- published within 5days" >> stoday.txt; sig_abort 1; else CROSS_CHECK "$@"; fi; else CROSS_CHECK "$@"; fi
     PARSE
@@ -335,7 +335,7 @@ else
         fi
     fi
 fi
-! grep -q "Series" stoday.txt && sed -i "1s/^/\\nSeries\\n------\\n/" stoday.txt
+! grep -q "^Series" stoday.txt && sed -i "1s/^/\\nSeries\\n------\\n/" stoday.txt
 set +x
 echo -e ":: working...done!"
 end=`date +%s`
