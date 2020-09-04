@@ -220,7 +220,7 @@ set -xe
         fi
         PARSE $1
         if ! grep -q 'http' links; then echo "$OUTPUT -- no links" >> $1'today.txt' && continue; fi
-        curl $ARGS "$POSTER" -o "$TITLE".jpg
+        curl $ARGS "$POSTER" -o "$TITLE".jpg || continue
         if [ $(identify -format "%w" "$TITLE".jpg)> /dev/null -gt 530 -o $(identify -format "%w" "$TITLE".jpg)> /dev/null -lt 470 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -gt 780 -o $(identify -format "%h" "$TITLE".jpg)> /dev/null -lt 700 ]; then
             if ! grep -q "$OUTPUT" whitelist; then
                 echo "$OUTPUT -- image dimension error" >> $1'today.txt'; continue
