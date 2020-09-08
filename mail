@@ -1,5 +1,6 @@
 #!/bin/env bash
-set -xe
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+set -e
 DIR=~/.turbodl
 if [ -d "$DIR" ]; then cd "$DIR"; fi
 zip -rq turbo.zip * -x md5 -x *list -x junk/pid*
