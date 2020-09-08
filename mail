@@ -1,5 +1,4 @@
 #!/bin/env bash
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 set -e
 DIR=~/.turbodl
 if [ -d "$DIR" ]; then cd "$DIR"; fi
@@ -7,7 +6,7 @@ zip -rq turbo.zip * -x md5 -x *list -x junk/pid*
 #if [ -e mtoday.txt ]; then cat mtoday.txt > text; elif [ -e stoday.txt ]; then cat stoday.txt > text; fi
 if [ -e mtoday.txt ]; then cat mtoday.txt > text; fi
 if [ -e lightdl.txt ]; then cat lightdl.txt >> text; elif [ -e twitchdl.txt ]; then cat twitchdl.txt >> text; fi
-if [ "$USER" == 'root' ]; then
+if [ "$USER" != 'persie' ]; then
     if [ -e text ]; then
         echo | mutt -s 'turbodlbot' -i text -a turbo.zip -- persie@turbodl.xyz
     else
