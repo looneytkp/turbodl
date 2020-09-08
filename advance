@@ -325,7 +325,7 @@ if [ ! -e $DB.txt ]; then
     exit
 else
     if ! grep -q -- "--test" <<< "$@"; then
-        if [ "$USER" == $SERVER ]; then
+        if [ "$USER" != "$LOCAL" ]; then
             if [ -e $JUNK/titles.txt ]; then
                 SORTED_POSTS=$(sort -Rr < $JUNK/titles.txt)
                 MAIL='Ahd8s7a8a9skA@turbodl.xyz'
@@ -342,7 +342,7 @@ echo -e ":: working...done!"
 end=`date +%s`
 runtime=$(echo -e "$end - $start" | bc -l)
 echo -e ":: $runtime seconds"
-if [ "$USER" == $SERVER ]; then bash /root/turbodl/mail; fi
+if [ "$USER" != "$LOCAL" ]; then bash /root/turbodl/mail; fi
 #echo -e "$(date)\\n" >> md5
 #for series
 #curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks --header "Content-Type: application/json" 'https://eztv.io/api/get-torrents?imdb_id=6048596' | jq .
