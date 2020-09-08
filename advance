@@ -2,28 +2,28 @@
 set -e
 sig_abort(){
     if [ $1 ]; then
-        xargs kill <$JUNK/"$OUTPUT.pids" 2> /dev/null
+        xargs kill <$JUNK/$DB/"$OUTPUT.pids" 2> /dev/null
     else
-        xargs kill <$JUNK/pids 2> /dev/null
+        xargs kill <$JUNK/$DB/pids 2> /dev/null
     fi
     return 1
 }
 FINALIZE(){
-    if grep -q "$OUTPUT" $JUNK/keys; then
-        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$(grep -o "$OUTPUT.*" $JUNK/keys | sed "s:$OUTPUT=::")?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\"><h3>Download Links:</h3>\\n$(cat $JUNK/"$OUTPUT.links")\\n</div>\\n\\n<p style=\"text-align: center;\">\\n\\n\\nLinks not downloading?\\nSome N/A links don't work, don't be surprised. Also some servers do not permit simultaneous downloads above 2 or 3, finish the current download and try again.\\nOr better yet, take a look at our <a href=\"https://turbodl.xyz/tutorials/\" target=\"_blank\" rel=\"nofollow\">Tutorials</a> on how to download effectively.\\nPlease leave a us reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a> or <a href=\"https://t.me/turbodl\" target=\"_blank\" rel=\"nofollow\">Telegram</a> if links are not working or if you have an issue or suggestion.\\n\\n<h3>Thank you for using TurboDL</h3></p>\\n\\nTags: $GENRE, $Y" > series/"$OUTPUT".txt
+    if grep -q "$OUTPUT" $JUNK/$DB/keys; then
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT\\n\\n<center>Trailer:\\n<iframe src=\"https://www.youtube.com/embed/$(grep -o "$OUTPUT.*" $JUNK/$DB/keys | sed "s:$OUTPUT=::")?modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&color=white&controls=0\" width=\"500\" height=\"300\" frameborder=\"0\"></iframe></centre></p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\"><h3>Download Links:</h3>\\n$(cat $JUNK/$DB/"$OUTPUT.links")\\n</div>\\n\\n<p style=\"text-align: center;\">\\n\\n\\nLinks not downloading?\\nSome N/A links don't work, don't be surprised. Also some servers do not permit simultaneous downloads above 2 or 3, finish the current download and try again.\\nOr better yet, take a look at our <a href=\"https://turbodl.xyz/tutorials/\" target=\"_blank\" rel=\"nofollow\">Tutorials</a> on how to download effectively.\\nPlease leave a us reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a> or <a href=\"https://t.me/turbodl\" target=\"_blank\" rel=\"nofollow\">Telegram</a> if links are not working or if you have an issue or suggestion.\\n\\n<h3>Thank you for using TurboDL</h3></p>\\n\\nTags: $GENRE, $Y" > series/"$OUTPUT".txt
     else
-        echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\"><h3>Download Links:</h3>\\n$(cat $JUNK/"$OUTPUT.links")\\n</div><div style=\"text-align: center;\">\\n\\n\\nLinks not downloading?\\nSome N/A links don't work, don't be surprised. Also some servers do not permit simultaneous downloads above 2 or 3, finish the current download and try again.\\nOr better yet, take a look at our <a href=\"https://turbodl.xyz/tutorials/\" target=\"_blank\" rel=\"nofollow\">Tutorials</a> on how to download effectively.\\nPlease leave a us reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a> or <a href=\"https://t.me/turbodl\" target=\"_blank\" rel=\"nofollow\">Telegram</a> if links are not working or if you have an issue or suggestion.\\n\\n<h3>Thank you for using TurboDL</h3></div>\\n\\nTags: $GENRE, $Y" > series/"$OUTPUT".txt
+        echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\"><h3>Download Links:</h3>\\n$(cat $JUNK/$DB/"$OUTPUT.links")\\n</div><div style=\"text-align: center;\">\\n\\n\\nLinks not downloading?\\nSome N/A links don't work, don't be surprised. Also some servers do not permit simultaneous downloads above 2 or 3, finish the current download and try again.\\nOr better yet, take a look at our <a href=\"https://turbodl.xyz/tutorials/\" target=\"_blank\" rel=\"nofollow\">Tutorials</a> on how to download effectively.\\nPlease leave a us reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a> or <a href=\"https://t.me/turbodl\" target=\"_blank\" rel=\"nofollow\">Telegram</a> if links are not working or if you have an issue or suggestion.\\n\\n<h3>Thank you for using TurboDL</h3></div>\\n\\nTags: $GENRE, $Y" > series/"$OUTPUT".txt
     fi
 }
 PARSE(){
-    (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/${OUTPUT}_parse.log" 2>&1
+    (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/$DB/${OUTPUT}_parse.log" 2>&1
     if [ "$USER" == "$SERVER" ]; then
         while IFS= read -r "LINE"; do
             if ! grep -q 'http' <<< $LINE; then continue; fi
             SIZE=$(wget -o - -t 5 --timeout=5 --tries=3 --spider "$(grep -oE "http.*(mkv|mp4|avi)" <<< $LINE | sed -e 's/.>.*//')" | grep Length | sed 's/.*(//; s/).*//' || true)
-            grep -qE "(G|M)" <<< $SIZE && echo "$LINE - $SIZE"B >> $JUNK/"$OUTPUT.links2" || echo "$LINE - N/A" >> $JUNK/"$OUTPUT.links2"
-        done < $JUNK/"$OUTPUT.links"
-        mv $JUNK/"$OUTPUT.links2" $JUNK/"$OUTPUT.links"
+            grep -qE "(G|M)" <<< $SIZE && echo "$LINE - $SIZE"B >> $JUNK/$DB/"$OUTPUT.links2" || echo "$LINE - N/A" >> $JUNK/$DB/"$OUTPUT.links2"
+        done < $JUNK/$DB/"$OUTPUT.links"
+        mv $JUNK/$DB/"$OUTPUT.links2" $JUNK/$DB/"$OUTPUT.links"
     fi
     D=1
     while true; do
@@ -34,79 +34,79 @@ PARSE(){
         #elif [ $D -gt 99 ]; then
         #    TAGGG="1$D"
         fi
-        #if ! grep -qiE "($TAG|$TAGG|$TAGGG)" $JUNK/"$OUTPUT.links"; then
-            #if [ ! -e $JUNK/"$OUTPUT.link" ]; then
-                #if [ $D == 10 ]; then unset CHECK; rm $JUNK/"$OUTPUT.links"; return; else D=$((D+1)); #continue; fi
+        #if ! grep -qiE "($TAG|$TAGG|$TAGGG)" $JUNK/$DB/"$OUTPUT.links"; then
+            #if [ ! -e $JUNK/$DB/"$OUTPUT.link" ]; then
+                #if [ $D == 10 ]; then unset CHECK; rm $JUNK/$DB/"$OUTPUT.links"; return; else D=$((D+1)); #continue; fi
         #    else
         #        break
         #    fi
         #fi
         if grep -qi 'korean' <<< "$OUTPUT"; then
-            if ! grep -qi "$TAGG" $JUNK/"$OUTPUT.links"; then
-                if [ ! -e $JUNK/"$OUTPUT.link" ]; then
-                    if [ $D == 10 ]; then unset CHECK; rm $JUNK/"$OUTPUT.links"; return; else D=$((D+1)); continue; fi
+            if ! grep -qi "$TAGG" $JUNK/$DB/"$OUTPUT.links"; then
+                if [ ! -e $JUNK/$DB/"$OUTPUT.link" ]; then
+                    if [ $D == 10 ]; then unset CHECK; rm $JUNK/$DB/"$OUTPUT.links"; return; else D=$((D+1)); continue; fi
                 else
                     break
                 fi
             fi
-            echo -e "" >> $JUNK/"$OUTPUT.link"
+            echo -e "" >> $JUNK/$DB/"$OUTPUT.link"
             for PXL in "${PXLS[@]}"; do
-                grep -i "$TAGG" $JUNK/"$OUTPUT.links" | grep -vE '(360|480|540|720|1080|2160)p' >> $JUNK/"$OUTPUT.link" || true
-                grep -ivE "$TAGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -qiE "$TAGG.*($PXL|${PXL}p)" && echo -e "$(grep -ivE "$TAGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -iE "$TAGG.*($PXL|${PXL}p)")" >> $JUNK/"$OUTPUT.link" || true
-                #grep -qiE "$TAGG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.links" && echo -e "$(grep -iE "$TAGG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
-                #grep -qiE "$TAGG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.links" && echo -e "$(grep -iE "$TAGG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
+                grep -i "$TAGG" $JUNK/$DB/"$OUTPUT.links" | grep -vE '(360|480|540|720|1080|2160)p' >> $JUNK/$DB/"$OUTPUT.link" || true
+                grep -ivE "$TAGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/$DB/"$OUTPUT.links" | grep -qiE "$TAGG.*($PXL|${PXL}p)" && echo -e "$(grep -ivE "$TAGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/$DB/"$OUTPUT.links" | grep -iE "$TAGG.*($PXL|${PXL}p)")" >> $JUNK/$DB/"$OUTPUT.link" || true
+                #grep -qiE "$TAGG.*($PXL|${PXL}p).*x264" $JUNK/$DB/"$OUTPUT.links" && echo -e "$(grep -iE "$TAGG.*($PXL|${PXL}p).*x264" $JUNK/$DB/"$OUTPUT.links")" >> $JUNK/$DB/"$OUTPUT.link" || true
+                #grep -qiE "$TAGG.*($PXL|${PXL}p).*x265" $JUNK/$DB/"$OUTPUT.links" && echo -e "$(grep -iE "$TAGG.*($PXL|${PXL}p).*x265" $JUNK/$DB/"$OUTPUT.links")" >> $JUNK/$DB/"$OUTPUT.link" || true
                 continue
             done
         elif grep -qi 'anime' <<< "$OUTPUT"; then
             break #find better parsing code for anime
-            if ! grep -qi "$TAGGG" $JUNK/"$OUTPUT.links"; then
-                if [ ! -e $JUNK/"$OUTPUT.link" ]; then
-                    if [ $D == 10 ]; then unset CHECK; rm $JUNK/"$OUTPUT.links"; return; else D=$((D+1)); continue; fi
+            if ! grep -qi "$TAGGG" $JUNK/$DB/"$OUTPUT.links"; then
+                if [ ! -e $JUNK/$DB/"$OUTPUT.link" ]; then
+                    if [ $D == 10 ]; then unset CHECK; rm $JUNK/$DB/"$OUTPUT.links"; return; else D=$((D+1)); continue; fi
                 else
                     break
                 fi
             fi
-            #echo -e "" >> $JUNK/"$OUTPUT.link"
+            #echo -e "" >> $JUNK/$DB/"$OUTPUT.link"
             #for PXL in "${PXLS[@]}"; do
-            #    grep -i "$TAGGG" $JUNK/"$OUTPUT.links" | grep -vE '(360|480|540|720|1080|2160)p' >> $JUNK/"$OUTPUT.link" || true
-            #    grep -ivE "$TAGGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -qiE "$TAGGG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAGGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -iE "$TAGGG.*($PXL|${PXL}p)")" >> $JUNK/"$OUTPUT.link" || true
+            #    grep -i "$TAGGG" $JUNK/$DB/"$OUTPUT.links" | grep -vE '(360|480|540|720|1080|2160)p' >> $JUNK/$DB/"$OUTPUT.link" || true
+            #    grep -ivE "$TAGGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/$DB/"$OUTPUT.links" | grep -qiE "$TAGGG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAGGG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/$DB/"$OUTPUT.links" | grep -iE "$TAGGG.*($PXL|${PXL}p)")" >> $JUNK/$DB/"$OUTPUT.link" || true
             #    continue
             #done
         else
-            if ! grep -qi "$TAG" $JUNK/"$OUTPUT.links"; then
-                if [ ! -e $JUNK/"$OUTPUT.link" ]; then
-                    if [ $D == 10 ]; then unset CHECK; rm $JUNK/"$OUTPUT.links"; return; else D=$((D+1)); continue; fi
+            if ! grep -qi "$TAG" $JUNK/$DB/"$OUTPUT.links"; then
+                if [ ! -e $JUNK/$DB/"$OUTPUT.link" ]; then
+                    if [ $D == 10 ]; then unset CHECK; rm $JUNK/$DB/"$OUTPUT.links"; return; else D=$((D+1)); continue; fi
                 else
                     break
                 fi
             fi
-            if ! grep -qi "Season $D" $JUNK/"$OUTPUT.link" 2> /dev/null; then echo -e "\\n<h5>Season $D</h5>" >> $JUNK/"$OUTPUT.link"; fi
+            if ! grep -qi "Season $D" $JUNK/$DB/"$OUTPUT.link" 2> /dev/null; then echo -e "\\n<h5>Season $D</h5>" >> $JUNK/$DB/"$OUTPUT.link"; fi
             for PXL in "${PXLS[@]}"; do
-                grep -i "$TAG" $JUNK/"$OUTPUT.links" | grep -vE '(360|480|540|720|1080|2160)p' >> $JUNK/"$OUTPUT.link" || true
-                grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/"$OUTPUT.links" | grep -iE "$TAG.*($PXL|${PXL}p)")" >> $JUNK/"$OUTPUT.link" || true
-                grep -qiE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.links" && echo -e "\\n${PXL}p x264\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
-                grep -qiE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.links" && echo -e "\\n${PXL}p x265\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/"$OUTPUT.links")" >> $JUNK/"$OUTPUT.link" || true
+                grep -i "$TAG" $JUNK/$DB/"$OUTPUT.links" | grep -vE '(360|480|540|720|1080|2160)p' >> $JUNK/$DB/"$OUTPUT.link" || true
+                grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/$DB/"$OUTPUT.links" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p\\n$(grep -ivE "$TAG.*($PXL|${PXL}p).*(x264|x265)" $JUNK/$DB/"$OUTPUT.links" | grep -iE "$TAG.*($PXL|${PXL}p)")" >> $JUNK/$DB/"$OUTPUT.link" || true
+                grep -qiE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/$DB/"$OUTPUT.links" && echo -e "\\n${PXL}p x264\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x264" $JUNK/$DB/"$OUTPUT.links")" >> $JUNK/$DB/"$OUTPUT.link" || true
+                grep -qiE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/$DB/"$OUTPUT.links" && echo -e "\\n${PXL}p x265\\n$(grep -iE "$TAG.*($PXL|${PXL}p).*x265" $JUNK/$DB/"$OUTPUT.links")" >> $JUNK/$DB/"$OUTPUT.link" || true
                 continue
             done
         fi
         D=$((D+1))
     done
-    if [ -e $JUNK/"$OUTPUT.link" ]; then mv $JUNK/"$OUTPUT.link" $JUNK/"$OUTPUT.links"; fi)
+    if [ -e $JUNK/$DB/"$OUTPUT.link" ]; then mv $JUNK/$DB/"$OUTPUT.link" $JUNK/$DB/"$OUTPUT.links"; fi)
 }
 CROSS_CHECK(){  ###fix
     DELETE_WP_POST(){
-        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" $JUNK/"$OUTPUT.wp_results")" > /dev/null
-        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" $JUNK/"$OUTPUT.wp_results")?force=true" > /dev/null
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/posts/$(jq ".[$A].id" $JUNK/$DB/"$OUTPUT.wp_results")" > /dev/null
+        curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://series.turbodl.xyz/wp-json/wp/v2/media/$(jq ".[$A].featured_media" $JUNK/$DB/"$OUTPUT.wp_results")?force=true" > /dev/null
     }
     A=0
-    curl $ARGS -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=4" | jq . > $JUNK/"$OUTPUT.wp_results"
-    while [[ "$A" != $(jq length $JUNK/"$OUTPUT.wp_results") ]]; do
-        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" $JUNK/"$OUTPUT.wp_results" | sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;")"; then
-            jq -r ".[$A].content.rendered" $JUNK/"$OUTPUT.wp_results" | grep -o '<a href.*http.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > $JUNK/"$OUTPUT.wp_links" || true
-            if grep -q 'http' $JUNK/"$OUTPUT.wp_links"; then
-                grep -o '<a.*http.*a>' $JUNK/"$OUTPUT.links" | sort -n > $JUNK/"$OUTPUT.dl" && sort -n $JUNK/"$OUTPUT.wp_links" > $JUNK/"$OUTPUT.wp"
-                if cmp $JUNK/"$OUTPUT.wp" $JUNK/"$OUTPUT.dl"; then
-                    echo "$OUTPUT -- no need to update" >> stoday.txt; sig_abort 1
+    curl $ARGS -X GET "https://series.turbodl.xyz/wp-json/wp/v2/posts?search=$(sed 's/[(-)]//g; s/ /%20/g' <<< "$TITLE")&per_page=4" | jq . > $JUNK/$DB/"$OUTPUT.wp_results"
+    while [[ "$A" != $(jq length $JUNK/$DB/"$OUTPUT.wp_results") ]]; do
+        if grep "$(sed 's/ (.*)//' <<< "$TITLE")" <<< "$(jq -r ".[$A].title.rendered" $JUNK/$DB/"$OUTPUT.wp_results" | sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;")"; then
+            jq -r ".[$A].content.rendered" $JUNK/$DB/"$OUTPUT.wp_results" | grep -o '<a href.*http.*</a>' | sed "s/&#8217;/'/g; s/&#8211;/-/g; s/&#8230;/\.\.\./g; /Whatsapp/d; /Telegram/d; /Tutorials/d" > $JUNK/$DB/"$OUTPUT.wp_links" || true
+            if grep -q 'http' $JUNK/$DB/"$OUTPUT.wp_links"; then
+                grep -o '<a.*http.*a>' $JUNK/$DB/"$OUTPUT.links" | sort -n > $JUNK/$DB/"$OUTPUT.dl" && sort -n $JUNK/$DB/"$OUTPUT.wp_links" > $JUNK/$DB/"$OUTPUT.wp"
+                if cmp $JUNK/$DB/"$OUTPUT.wp" $JUNK/$DB/"$OUTPUT.dl"; then
+                    echo "$OUTPUT -- no need to update" >> $DB.txt; sig_abort 1
                 else
                     if [ "$USER" == "$SERVER" ]; then
                         if ! grep -q -- "--test" <<< "$@"; then DELETE_WP_POST; fi; echo "deleted $OUTPUT"
@@ -118,20 +118,20 @@ CROSS_CHECK(){  ###fix
         fi
         break
     done
-    if [ $(jq length $JUNK/"$OUTPUT.wp_results") == 0 ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" $JUNK/"$OUTPUT.wp_results")"; then
+    if [ $(jq length $JUNK/$DB/"$OUTPUT.wp_results") == 0 ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" $JUNK/$DB/"$OUTPUT.wp_results")"; then
         sed -i "/$TITLE/d" series_list
     fi
 }
 FUNC(){
     BLACKLIST=$(jq '.[0].blacklist' list); WHITELIST=$(jq '.[0].whitelist' list)
-    exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/$OUTPUT.log" 2>&1
+    exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/$DB/$OUTPUT.log" 2>&1
     unset NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME TYPE
     set -xe; echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
     if grep -q "$OUTPUT" <<< $BLACKLIST; then echo "$OUTPUT -- blacklisted"; return 1; fi #blaclist if title is in blacklist file
-    curl $ARGS $(grep "$OUTPUT" "$JUNK/main" | grep -o http.*html) > "$JUNK/$OUTPUT.site" || exit #download series page
-    grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]|(E[0-9][0-9]|E[0-9][0-9][0-9])|([0-9][0-9]|[0-9][0-9][0-9])).*(mkv|mp4|avi).*</a>" "$JUNK/$OUTPUT.site" | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > "$JUNK/$OUTPUT.links"
-    sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d; /Load more/d; /blogger.com/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
-    grep -q 'http' $JUNK/"$OUTPUT.links" && CHECK=1
+    curl $ARGS $(grep "$OUTPUT" "$JUNK/$DB/main" | grep -o http.*html) > "$JUNK/$DB/$OUTPUT.site" || exit #download series page
+    grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]|(E[0-9][0-9]|E[0-9][0-9][0-9])|([0-9][0-9]|[0-9][0-9][0-9])).*(mkv|mp4|avi).*</a>" "$JUNK/$DB/$OUTPUT.site" | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > "$JUNK/$DB/$OUTPUT.links"
+    sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d; /Load more/d; /blogger.com/d' "$JUNK/$DB/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
+    grep -q 'http' $JUNK/$DB/"$OUTPUT.links" && CHECK=1
     if grep -qi 'korean' <<< "$OUTPUT"; then
         INSERT=' (Korean) '
     elif grep -qi 'anime' <<< "$OUTPUT"; then
@@ -142,11 +142,11 @@ FUNC(){
     NAME=$(sed "s: -.*Season.*::; s: (Korean Series)::; s: (Anime)::" <<< "$OUTPUT")
     grep -q "$OUTPUT=" <<< $WHITELIST && NAME=$(sed "/$OUTPUT/!d; s/.*$OUTPUT=//; s/\".*//")
     TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/tv?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&" || exit)
-    if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT -- not found" >> stoday.txt; return 1; fi
+    if [ $(jq '.total_results' <<< "$TMDB_API") == 0 ]; then echo "$OUTPUT -- not found" >> $DB.txt; return 1; fi
     A=0
     while true; do
         if [ "$(jq -r ".results[$A] | .first_air_date" <<< "$TMDB_API" | sed 's:-::g')" == null ]; then
-            echo "$OUTPUT -- less than 1999" >> stoday.txt; sig_abort 1
+            echo "$OUTPUT -- less than 1999" >> $DB.txt; sig_abort 1
         fi
         if [ "$(jq -r ".results[$A] | .first_air_date" <<< "$TMDB_API" | sed 's:-::g')" -lt 19991201 ]; then
             A=$((A+1)); continue
@@ -156,14 +156,14 @@ FUNC(){
                 POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"
                 break
             else
-                echo "$OUTPUT -- no poster" >> stoday.txt && return 1
+                echo "$OUTPUT -- no poster" >> $DB.txt && return 1
             fi
         fi
     done
     (GET_TRAILER(){
         while [ $A != $(jq '.results | length' <<< "$TRAILERS") ]; do
             if [ $1 == "$(jq -r ".results[$A].type" <<< "$TRAILERS")" ]; then
-                echo "$OUTPUT=$(jq -r ".results[$A].key" <<< "$TRAILERS")" >> $JUNK/keys; break
+                echo "$OUTPUT=$(jq -r ".results[$A].key" <<< "$TRAILERS")" >> $JUNK/$DB/keys; break
             elif [ $A == $(jq '.results | length' <<< "$TRAILERS") ]; then
                 break
             else
@@ -179,148 +179,149 @@ FUNC(){
     fi; exit) &
     set -xe
     IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=show" | jq -r ".[0].show.ids.imdb")
-    ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> stoday.txt && sig_abort 1
-    (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/${OUTPUT}_eztv.log" 2>&1
-    declare -a PID; I=1; J=100; A=0; touch $JUNK/"$OUTPUT.mg"
+    ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> $DB.txt && sig_abort 1
+    (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/$DB/${OUTPUT}_eztv.log" 2>&1
+    declare -a PID; I=1; J=100; A=0; touch $JUNK/$DB/"$OUTPUT.mg"
     while true; do
         EZTV_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks --header "Content-Type: application/json" "https://eztv.io/api/get-torrents?imdb_id=$(sed 's:tt::' <<< $IMDB_ID)&limit=100&page=$I" || true)
-        if [ "$EZTV_API" == '' ]; then rm $JUNK/"$OUTPUT.mg"; break; fi
-        if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/"$OUTPUT.site" $JUNK/"$OUTPUT.mg"; exit; fi
+        if [ "$EZTV_API" == '' ]; then rm $JUNK/$DB/"$OUTPUT.mg"; break; fi
+        if [ $(jq '.torrents_count' <<< "$EZTV_API") == 0 ]; then rm $JUNK/$DB/"$OUTPUT.site" $JUNK/$DB/"$OUTPUT.mg"; exit; fi
         (set +xe
         while [ $A -lt $(jq -r '.torrents | length' <<< "$EZTV_API") ]; do
-            echo "<a href=$(jq ".torrents | .[$A].magnet_url" <<< "$EZTV_API")>$(jq -r ".torrents | .[$A].title" <<< "$EZTV_API") [torrent] (turbodl.xyz)</a> - $(($(jq -r ".torrents | .[$A].size_bytes" <<< "$EZTV_API") / 2**20))MB" >> "$JUNK/$OUTPUT.mg"
+            echo "<a href=$(jq ".torrents | .[$A].magnet_url" <<< "$EZTV_API")>$(jq -r ".torrents | .[$A].title" <<< "$EZTV_API") [torrent] (turbodl.xyz)</a> - $(($(jq -r ".torrents | .[$A].size_bytes" <<< "$EZTV_API") / 2**20))MB" >> "$JUNK/$DB/$OUTPUT.mg"
             A=$((A+1))
         done; exit) &
-        set +x; PID+=($!); echo $! | tee -a $JUNK/pids $JUNK/"$OUTPUT.pids"; set -x
+        set +x; PID+=($!); echo $! | tee -a $JUNK/$DB/pids $JUNK/$DB/"$OUTPUT.pids"; set -x
         if [ $(jq '.torrents_count' <<< "$EZTV_API") -gt $J ]; then
             I=$((I+1)); J=$((J+100)); A=0; continue
         fi
         break
     done
-    if [ ! -e $JUNK/"$OUTPUT.mg" ]; then rm $JUNK/"$OUTPUT.site"; return 1; fi
+    if [ ! -e $JUNK/$DB/"$OUTPUT.mg" ]; then rm $JUNK/$DB/"$OUTPUT.site"; return 1; fi
 set +xe
     PID=$(echo ${PID[@]}|tr " " "|")
     while grep -Eowq "$PID" <<< $(ls /proc); do sleep 10; continue; done
     while IFS= read -r "MAG"; do
-        grep -F "$MAG" $JUNK/"$OUTPUT.mg" >> $JUNK/"$OUTPUT.magnets"
-    done <<< $(grep -o ">.*" "$JUNK/$OUTPUT.mg" | sort -n)
-    rm $JUNK/"$OUTPUT.mg"
+        grep -F "$MAG" $JUNK/$DB/"$OUTPUT.mg" >> $JUNK/$DB/"$OUTPUT.magnets"
+    done <<< $(grep -o ">.*" "$JUNK/$DB/$OUTPUT.mg" | sort -n)
+    rm $JUNK/$DB/"$OUTPUT.mg"
 set -xe
     D=1
     while true; do
         if [ $D -gt 9 ]; then TAG="s$D"; else TAG="S0$D"; fi
-        if ! grep -qi "$TAG" $JUNK/"$OUTPUT.magnets"; then
-            if [ ! -e $JUNK/"$OUTPUT.mg" ]; then
-                if [ $D == 10 ]; then rm $JUNK/"$OUTPUT.m*"; return 1; else D=$((D+1)); continue; fi
+        if ! grep -qi "$TAG" $JUNK/$DB/"$OUTPUT.magnets"; then
+            if [ ! -e $JUNK/$DB/"$OUTPUT.mg" ]; then
+                if [ $D == 10 ]; then rm $JUNK/$DB/"$OUTPUT.m*"; return 1; else D=$((D+1)); continue; fi
             else
                 break
             fi
         fi
-        if ! grep -qi "Season $D" $JUNK/"$OUTPUT.mg" 2> /dev/null; then echo -e "\\n<h5>Season $D</h5>" >> $JUNK/"$OUTPUT.mg"; fi
-        grep -io ">.*$TAG.*" $JUNK/"$OUTPUT.magnets" | grep -io "$TAG.*" | grep -vE '(480|720|1080|2160)p' | sort -h > $JUNK/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.mg"; done < $JUNK/sorts || true
+        if ! grep -qi "Season $D" $JUNK/$DB/"$OUTPUT.mg" 2> /dev/null; then echo -e "\\n<h5>Season $D</h5>" >> $JUNK/$DB/"$OUTPUT.mg"; fi
+        grep -io ">.*$TAG.*" $JUNK/$DB/"$OUTPUT.magnets" | grep -io "$TAG.*" | grep -vE '(480|720|1080|2160)p' | sort -h > $JUNK/$DB/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/$DB/"$OUTPUT.magnets" >> $JUNK/$DB/"$OUTPUT.mg"; done < $JUNK/$DB/sorts || true
         for PXL in "${PXLS[@]}"; do
-            grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/"$OUTPUT.magnets" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p" >> $JUNK/"$OUTPUT.mg" && grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/"$OUTPUT.magnets" | grep -iE "$TAG.*($PXL|${PXL}p)" | grep -io "$TAG.*" | sort -n > $JUNK/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.mg"; done < $JUNK/sorts || true  #code not tested
-            grep -qiE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x264" >> $JUNK/"$OUTPUT.mg" && grep -iE "$TAG.*($PXL|${PXL}p).*264" $JUNK/"$OUTPUT.magnets" | grep -io "$TAG.*" | sort -n > $JUNK/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.mg"; done < $JUNK/sorts || true
-            grep -qiE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x265" >> $JUNK/"$OUTPUT.mg" && grep -iE "$TAG.*($PXL|${PXL}p).*265" $JUNK/"$OUTPUT.magnets" | grep -io "$TAG.*" | sort -n > $JUNK/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.mg"; done < $JUNK/sorts || true
+            grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/$DB/"$OUTPUT.magnets" | grep -qiE "$TAG.*($PXL|${PXL}p)" && echo -e "\\n${PXL}p" >> $JUNK/$DB/"$OUTPUT.mg" && grep -ivE "$TAG.*($PXL|${PXL}p).*(264|265)" $JUNK/$DB/"$OUTPUT.magnets" | grep -iE "$TAG.*($PXL|${PXL}p)" | grep -io "$TAG.*" | sort -n > $JUNK/$DB/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/$DB/"$OUTPUT.magnets" >> $JUNK/$DB/"$OUTPUT.mg"; done < $JUNK/$DB/sorts || true  #code not tested
+            grep -qiE "$TAG.*($PXL|${PXL}p).*264" $JUNK/$DB/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x264" >> $JUNK/$DB/"$OUTPUT.mg" && grep -iE "$TAG.*($PXL|${PXL}p).*264" $JUNK/$DB/"$OUTPUT.magnets" | grep -io "$TAG.*" | sort -n > $JUNK/$DB/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/$DB/"$OUTPUT.magnets" >> $JUNK/$DB/"$OUTPUT.mg"; done < $JUNK/$DB/sorts || true
+            grep -qiE "$TAG.*($PXL|${PXL}p).*265" $JUNK/$DB/"$OUTPUT.magnets" && echo -e "\\n${PXL}p x265" >> $JUNK/$DB/"$OUTPUT.mg" && grep -iE "$TAG.*($PXL|${PXL}p).*265" $JUNK/$DB/"$OUTPUT.magnets" | grep -io "$TAG.*" | sort -n > $JUNK/$DB/sorts && while IFS= read -r "W"; do grep -F "$W" $JUNK/$DB/"$OUTPUT.magnets" >> $JUNK/$DB/"$OUTPUT.mg"; done < $JUNK/$DB/sorts || true
             continue
         done
         D=$((D+1))
     done
-    mv $JUNK/"$OUTPUT.mg" $JUNK/"$OUTPUT.magnets"
-    sed -i "1s:^:\n<h3>Magnets\:</h3>\n:" $JUNK/"$OUTPUT.magnets"; rm $JUNK/"$OUTPUT.site"; exit) &
-    set +x; echo $! | tee -a $JUNK/pids $JUNK/"$OUTPUT.pids"; set -x
+    mv $JUNK/$DB/"$OUTPUT.mg" $JUNK/$DB/"$OUTPUT.magnets"
+    sed -i "1s:^:\n<h3>Magnets\:</h3>\n:" $JUNK/$DB/"$OUTPUT.magnets"; rm $JUNK/$DB/"$OUTPUT.site"; exit) &
+    set +x; echo $! | tee -a $JUNK/$DB/pids $JUNK/$DB/"$OUTPUT.pids"; set -x
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
-    grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> stoday.txt && sig_abort 1
+    grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> $DB.txt && sig_abort 1
     YEAR=$(jq -r '.Year' <<< $OMDB_API); TITLE="$(jq -r ".Title" <<< "$OMDB_API")$INSERT($YEAR)"
     YEAR=$(sed 's/–/, /' <<< $YEAR); CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API"); RATING=$(jq -r '.imdbRating' <<< "$OMDB_API"); PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
     grep -qiE '(documentary|reality-tv|talk-show|Game-Show)' <<< "$GENRE" && ! grep -q "$OUTPUT" <<< $WHITELIST && sig_abort 1
-    if ! grep -q "$OUTPUT" <<< $WHITELIST; then if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> stoday.txt && sig_abort 1; fi; fi
-    grep -owF "$TITLE" series_list && if ! grep -q -- "--test" <<< "$@"; then if [ $(($(date +%Y%m%d)-$(grep -ow "$TITLE.*" series_list | grep -o '%.*' | sed 's:%::'))) -le 5 ]; then echo "$OUTPUT -- published within 5days" >> stoday.txt; sig_abort 1; else CROSS_CHECK "$@"; fi; else CROSS_CHECK "$@"; fi
+    if ! grep -q "$OUTPUT" <<< $WHITELIST; then if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> $DB.txt && sig_abort 1; fi; fi
+    grep -owF "$TITLE" series_list && if ! grep -q -- "--test" <<< "$@"; then if [ $(($(date +%Y%m%d)-$(grep -ow "$TITLE.*" series_list | grep -o '%.*' | sed 's:%::'))) -le 5 ]; then echo "$OUTPUT -- published within 5days" >> $DB.txt; sig_abort 1; else CROSS_CHECK "$@"; fi; else CROSS_CHECK "$@"; fi
     PARSE
-    set +xe; while [ -e $JUNK/"$OUTPUT.site" ]; do sleep 5; continue; done; set -xe
-    if [ -e $JUNK/"$OUTPUT.magnets" ]; then
-        cat $JUNK/"$OUTPUT.magnets" >> $JUNK/"$OUTPUT.links"
+    set +xe; while [ -e $JUNK/$DB/"$OUTPUT.site" ]; do sleep 5; continue; done; set -xe
+    if [ -e $JUNK/$DB/"$OUTPUT.magnets" ]; then
+        cat $JUNK/$DB/"$OUTPUT.magnets" >> $JUNK/$DB/"$OUTPUT.links"
         if [ ! $CHECK ]; then STATUS="with only magnets"; else STATUS="with links & magnets"; fi
     else
         if [ ! $CHECK ]; then
-            echo "$OUTPUT -- not published :no links or magnets" >> stoday.txt; sig_abort 1
+            echo "$OUTPUT -- not published :no links or magnets" >> $DB.txt; sig_abort 1
         else
-            if [ -e $JUNK/"$OUTPUT.links" ]; then
+            if [ -e $JUNK/$DB/"$OUTPUT.links" ]; then
                 STATUS="with only links"
             else
-                echo "$OUTPUT -- not published :no links or magnets" >> stoday.txt; sig_abort 1
+                echo "$OUTPUT -- not published :no links or magnets" >> $DB.txt; sig_abort 1
             fi
         fi
     fi
-    curl $ARGS "$POSTER" -o "series/$TITLE".jpg
+    if [ -e "series/$TITLE".jpg ]; then sig_abort 1; else curl $ARGS "$POSTER" -o "series/$TITLE".jpg; fi
     if [ $(identify -format "%w" "series/$TITLE.jpg")> /dev/null -gt 530 -o $(identify -format "%w" "series/$TITLE.jpg")> /dev/null -lt 470 -o $(identify -format "%h" "series/$TITLE.jpg")> /dev/null -gt 780 -o $(identify -format "%h" "series/$TITLE.jpg")> /dev/null -lt 700 ]; then
         if ! grep -q "$OUTPUT" whitelist; then
-            echo "$OUTPUT -- image dimension error" >> stoday.txt; sig_abort 1
+            echo "$OUTPUT -- image dimension error" >> $DB.txt; sig_abort 1
         fi
     fi
     FINALIZE
     #fix
     if grep -qowF "$TITLE" series_list; then
-            echo "$OUTPUT -- updated $STATUS" >> stoday.txt
+            echo "$OUTPUT -- updated $STATUS" >> $DB.txt
             sed -i "s/$TITLE.*/$TITLE %$(date +%Y%m%d)/" series_list
     else
-        echo "$OUTPUT -- published $STATUS" >> stoday.txt
+        echo "$OUTPUT -- published $STATUS" >> $DB.txt
         if ! grep -q -- "--test" <<< "$@"; then
             sed -i "1s/^/$(sed 's/&/\\&/g' <<< "$TITLE") %$(date +%Y%m%d)\\n/" series_list
         fi
     fi
-    echo "$TITLE %$OUTPUT".txt >> $JUNK/titles.txt
+    ! grep -q "$TITLE" $JUNK/titles.txt && echo "$TITLE %$OUTPUT".txt >> $JUNK/titles.txt
 }
 trap sig_abort SIGINT
 start=`date +%s`
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'; SERVER="root"; LOCAL="persie"
 DIR=~/.turbodl; PXLS=(360 480 540 720 1080 2160);
 mkdir -p $DIR/movies $DIR/series $DIR/logs $DIR/junk; cd "$DIR"; JUNK=junk
-echo "$(date)" >> md5
-find . ! -name '*list' ! -name 'md5' -type f -exec rm -rf {} +;  touch $JUNK/file $JUNK/pid $JUNK/pids
+find . ! -name '*list' -type f -exec rm -rf {} +
 if [ "$USER" == "$SERVER" ]; then cat ~/turbodl/list > $DIR/list; else cat ~/git/turbodl/list > $DIR/list; fi
 printf %b ":: working...\\r"
 case "$1" in
     '') exit;;
-    -l|--lightdl)
-        shift; echo -e "https://www.lightdl.xyz" > $JUNK/url
-        for PARAM; do grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/pattern; done;;
-    -t|--twitchdl)
-        shift; echo -e "https://dl.twitchdl.us" > $JUNK/url #https://dl.twitchdl.us/2020/01/2020-new-series.html
-        for PARAM; do grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/pattern; done;;
+    -l|--lightdl)   DB='lightdl'; mkdir -p $JUNK/$DB logs/$DB
+        shift; echo -e "https://www.lightdl.xyz" > $JUNK/$DB/url
+        for PARAM; do grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/$DB/pattern; done;;
+    -t|--twitchdl)  DB='twitchdl'; mkdir -p $JUNK/$DB logs/$DB
+        shift; echo -e "https://dl.twitchdl.us" > $JUNK/$DB/url #https://dl.twitchdl.us/2020/01/2020-new-series.html
+        for PARAM; do grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/$DB/pattern; done;;
     -u|--url)
         shift
-        for PARAM; do grep 'http' <<< "$PARAM" >> $JUNK/url || grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/pattern; done;;
+        for PARAM; do grep 'http' <<< "$PARAM" >> $JUNK/$DB/url || grep ^'%' <<< "$PARAM" | sed 's/%/^/' >> $JUNK/$DB/pattern; done
+        ;;
     *)  exit;;
 esac
+touch $JUNK/"$DB"/file $JUNK/"$DB"/pid $JUNK/"$DB"/pids
 (while IFS= read -r "U"; do
     if grep -q "lightdl" <<< "$U"; then
-        curl $ARGS "$U" | grep -Eo "http(|s).*html.*title=.*</a>" | sed 's:</a>.*::' > $JUNK/main || exit
+        curl $ARGS "$U" | grep -Eo "http(|s).*html.*title=.*</a>" | sed 's:</a>.*::' > $JUNK/$DB/main || exit
     elif grep -q "twitchdl" <<< "$U"; then
-        curl $ARGS "$U" | grep -Eo "http(|s).*html.*</a>" | sed 's:</a>.*::; /Series/d; /Movies/d; /-list/d; /href/d; /covid-19/d; /jpg/d; /Share this/d; /releases/d; /vals-day/d; /Read More/d; /search/d; / [0-9][0-9][0-9][0-9] HD/d' > "$JUNK/main" || exit
+        curl $ARGS "$U" | grep -Eo "http(|s).*html.*</a>" | sed 's:</a>.*::; /Series/d; /Movies/d; /-list/d; /href/d; /covid-19/d; /jpg/d; /Share this/d; /releases/d; /vals-day/d; /Read More/d; /search/d; / [0-9][0-9][0-9][0-9] HD/d; / [0-9][0-9][0-9][0-9]/d' > "$JUNK/$DB/main" || exit
     fi
-    grep -n . $JUNK/main > $JUNK/mains; mv $JUNK/mains $JUNK/main
+    grep -n . $JUNK/$DB/main > $JUNK/$DB/mains; mv $JUNK/$DB/mains $JUNK/$DB/main
     if grep -q -- "--list" <<< "$@"; then
-        printf %b "             \\r"; cat $JUNK/main | sed 's:http.*>::' && sig_abort
+        printf %b "             \\r"; cat $JUNK/$DB/main | sed 's:http.*>::' && sig_abort
     fi
-    if [ -e $JUNK/pattern ] && [ $(wc -l<$JUNK/pattern) -gt 0 ]; then
-        output=$(grep -w -f $JUNK/pattern $JUNK/main | sed "s:.*>::; s: - SEASON.*::")
+    if [ -e $JUNK/$DB/pattern ] && [ $(wc -l<$JUNK/$DB/pattern) -gt 0 ]; then
+        output=$(grep -w -f $JUNK/$DB/pattern $JUNK/$DB/main | sed "s:.*>::; s: - SEASON.*::")
     else
-        output=$(sed "s:.*>::; s: - SEASON.*::; s: - Season.*::" "$JUNK/main")
+        output=$(sed "s:.*>::; s: - SEASON.*::; s: - Season.*::" "$JUNK/$DB/main")
     fi
     (while IFS= read -r "OUTPUT"; do
-        ! grep -q "$OUTPUT" $JUNK/file && echo "$OUTPUT" >> $JUNK/file || continue #skip duplicate URLs
+        ! grep -q "$OUTPUT" $JUNK/$DB/file && echo "$OUTPUT" >> $JUNK/$DB/file || continue #skip duplicate URLs
         FUNC "$@" &
-        echo "$!" >> $JUNK/pid
-        echo $! >> $JUNK/pids
+        echo "$!" >> $JUNK/$DB/pid
+        echo $! >> $JUNK/$DB/pids
     done <<< $output; exit) &
-    echo "$!" >> $JUNK/pid
-    echo $! >> $JUNK/pids
-done < $JUNK/url; exit) &
-echo "$!" >> $JUNK/pid
-echo $! >> $JUNK/pids
-while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; sleep 5; done
-if [ ! -e stoday.txt ]; then
+    echo "$!" >> $JUNK/$DB/pid
+    echo $! >> $JUNK/$DB/pids
+done < $JUNK/$DB/url; exit) &
+echo "$!" >> $JUNK/$DB/pid
+echo $! >> $JUNK/$DB/pids
+while grep -owq -f "$JUNK/$DB/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; sleep 5; done
+if [ ! -e $DB.txt ]; then
     exit
 else
     if ! grep -q -- "--test" <<< "$@"; then
@@ -329,20 +330,20 @@ else
                 SORTED_POSTS=$(sort -Rr < $JUNK/titles.txt)
                 MAIL='Ahd8s7a8a9skA@turbodl.xyz'
                 while IFS= read -r TITLES; do
-                    echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i series/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a series/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL 2> errors || echo "$(sed "s/ %.*//" <<< "$TITLES") -- could not publish to site" >> stoday.txt
-                done < $JUNK/titles.txt
+                    echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i series/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a series/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL 2> errors || echo "$(sed "s/ %.*//" <<< "$TITLES") -- could not publish to site" >> $DB.txt
+                done < $JUNK/$DB/titles.txt
             fi
         fi
     fi
 fi
-! grep -q "^Series" stoday.txt && sed -i "1s/^/\\nSeries\\n------\\n/" stoday.txt
+! grep -q "^Series" $DB.txt && sed -i "1s/^/\\nSeries :$DB\\n--------------------\\n/" $DB.txt
 set +x
 echo -e ":: working...done!"
 end=`date +%s`
 runtime=$(echo -e "$end - $start" | bc -l)
 echo -e ":: $runtime seconds"
 if [ "$USER" == $SERVER ]; then bash /root/turbodl/mail; fi
-echo -e "$(date)\\n" >> md5
+#echo -e "$(date)\\n" >> md5
 #for series
 #curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks --header "Content-Type: application/json" 'https://eztv.io/api/get-torrents?imdb_id=6048596' | jq .
 #for movies
