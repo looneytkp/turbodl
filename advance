@@ -336,7 +336,7 @@ else
         fi
     fi
 fi
-! grep -q "^Series" $DB.txt && sed -i "1s/^/\\nSeries :$DB\\n--------------------\\n/" $DB.txt
+! grep -q "^Series" $DB.txt && sed -i "1s/^/\\nSeries :$DB\\n-----------------\\n/" $DB.txt
 set +x
 echo -e ":: working...done!"
 end=`date +%s`

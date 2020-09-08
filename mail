@@ -1,7 +1,8 @@
 #!/bin/env bash
-set -e
+set -xe
 DIR=~/.turbodl
 if [ -d "$DIR" ]; then cd "$DIR"; fi
+(exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"tesst" 2>&1
 zip -rq turbo.zip * -x md5 -x *list -x junk/pid*
 #if [ -e mtoday.txt ]; then cat mtoday.txt > text; elif [ -e stoday.txt ]; then cat stoday.txt > text; fi
 if [ -e mtoday.txt ]; then cat mtoday.txt > text; fi

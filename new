@@ -331,7 +331,7 @@ else
                 MAIL='Ahd8s7a8a9skA@turbodl.xyz'
                 while IFS= read -r TITLES; do
                     echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i series/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a series/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL 2> errors || echo "$(sed "s/ %.*//" <<< "$TITLES") -- could not publish to site" >> $DB.txt
-                done < $JUNK/$DB/titles.txt
+                done < $JUNK/titles.txt
             fi
         fi
     fi
