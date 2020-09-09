@@ -1,5 +1,5 @@
 #!/bin/env bash
-set -ex
+set -e
 sig_abort(){
     kill -9 $(echo ${PID[@]})
     return 1
