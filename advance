@@ -113,14 +113,16 @@ CROSS_CHECK(){  ###fix
                     fi
                 fi
             fi
+        elif [ "$(jq length $JUNK/$DB/"$OUTPUT.wp_results")" == "0" ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" $JUNK/$DB/"$OUTPUT.wp_results")"; then
+            sed -i "/$TITLE/d" series_list; break
         else
             A=$((A+1)); continue
         fi
         break
     done
-    if [ $(jq length $JUNK/$DB/"$OUTPUT.wp_results") == 0 ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" $JUNK/$DB/"$OUTPUT.wp_results")"; then
-        sed -i "/$TITLE/d" series_list
-    fi
+    #if [ $(jq length $JUNK/$DB/"$OUTPUT.wp_results") == 0 ] || ! grep -q "$TITLE" <<< "$(sed "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./; s/.u2013/–/; s/.u00e9/é/;" $JUNK/$DB/"$OUTPUT.wp_results")"; then
+    #    sed -i "/$TITLE/d" series_list
+    #fi
 }
 FUNC(){
     BLACKLIST=$(jq '.[0].blacklist' list); WHITELIST=$(jq '.[0].whitelist' list)
