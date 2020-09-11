@@ -237,7 +237,7 @@ set -xe
     YEAR=$(sed 's/–/, /' <<< $YEAR); CAST=$(jq -r '.Actors' <<< "$OMDB_API"); GENRE=$(jq -r '.Genre' <<< "$OMDB_API"); RATING=$(jq -r '.imdbRating' <<< "$OMDB_API"); PLOT=$(jq -r '.Plot' <<< "$OMDB_API")
     grep -qiE '(documentary|reality-tv|talk-show|Game-Show)' <<< "$GENRE" && ! grep -q "$OUTPUT" <<< $WHITELIST && sig_abort 1
     if ! grep -q "$OUTPUT" <<< $WHITELIST; then if [ "$GENRE" == 'N/A' ]; then echo "$OUTPUT -- N/A" >> $DB.txt && sig_abort 1; fi; fi
-    grep -owF "$TITLE" series_list && if ! grep -q -- "--test" <<< "$@"; then if [ $(($(date +%Y%m%d)-$(grep -ow "$TITLE.*" series_list | grep -o '%.*' | sed 's:%::'))) -le 5 ]; then echo "$OUTPUT -- published within 5days" >> $DB.txt; sig_abort 1; else CROSS_CHECK "$@"; fi; else CROSS_CHECK "$@"; fi
+    grep -owF "$TITLE" series_list && if ! grep -q -- "--test" <<< "$@"; then if [ $(($(date +%Y%m%d)-$(grep -ow "$TITLE.*" series_list | grep -o '%.*' | sed 's:%::'))) -le 3 ]; then echo "$OUTPUT -- published within 3days" >> $DB.txt; sig_abort 1; else CROSS_CHECK "$@"; fi; else CROSS_CHECK "$@"; fi
     PARSE
     set +xe; while [ -e $JUNK/$DB/"$OUTPUT.site" ]; do sleep 5; continue; done; set -xe
     if [ -e $JUNK/$DB/"$OUTPUT.magnets" ]; then
