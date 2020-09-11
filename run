@@ -1,5 +1,5 @@
 #!/bin/env bash
-set -ex
+set -e
 sig_abort(){
     kill -9 $(echo ${PID[@]})
     return 1
@@ -10,8 +10,7 @@ RUN(){
     while true; do
         POSTS=$(curl -s -X GET "$URL=$COUNT&per_page=100")
         if grep -q 'rest_post_invalid_page_number' <<< "$POSTS"; then break; fi
-        #(
-        while [ $COUNT1 -le $(jq length <<< "$POSTS") ]; do
+        (while [ $COUNT1 -le $(jq length <<< "$POSTS") ]; do
             if [ "$1" == -d ]; then
                 DELETE_WP_POST(){
                     curl -s -X DELETE --user "looneytkp:Sgm4kv101413$" "https://$R.xyz/wp-json/wp/v2/posts/$(jq ".[$COUNT1].id" <<< "$POSTS")" > /dev/null
@@ -23,7 +22,7 @@ RUN(){
                 echo "$(jq -r ".[$COUNT1].title.rendered" <<< "$POSTS" | sed -e "s/&#8211;/-/g; s/&#8217;/'/g; s/&#038;/\&/g; s/&#8216;/'/g; s/&#822[0-1];/\"/g; s/&amp;/\&/g; s/&#8230;/\.\.\./") %$(jq -r ".[$COUNT1].modified_gmt" <<< "$POSTS"| sed 's:-::g; s:T.*::')" >> $FILE
             fi
             COUNT1=$((COUNT1+1))
-        done #) &
+        done) &
         PID+=($!)
         COUNT1=0; COUNT=$((COUNT+1))
     done
