@@ -34,11 +34,13 @@ DIR=~/.turbodl; LOCAL="persie"
 case "$1" in
     -A|-a) printf ':: updating all database...'
         (FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"; R='turbodl'; RUN $2) &
-        PID+=($!)
+        echo $! >> $DIR/junk/pids
         (FILE=$DIR/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"; R='series.turbodl'; RUN $2) &
-        PID+=($!)
-        PID=$(echo ${PID[@]}|tr " " "|")
-        while grep -Eowq "$PID" <<< $(ls /proc); do sleep 5; continue; done; echo 'done!';;
+        echo $! >> $DIR/junk/pids
+        #PID+=($!)
+        #PID=$(echo ${PID[@]}|tr " " "|")
+        while grep -owq -f "$DIR/junk/pids" <<< $(ls /proc); do sleep 5; continue; done; echo 'done!';;
+        #while grep -Eowq "$PID" <<< $(ls /proc); do sleep 5; continue; done; echo 'done!';;
     -M|-m) FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"; R='turbodl'
         printf ':: updating movie database...'; RUN $2; echo 'done!';;
     -S|-s) FILE=$DIR/series_list; URL="https://series.turbodl.xyz/wp-json/wp/v2/posts?page"
