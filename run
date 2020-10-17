@@ -30,7 +30,7 @@ RUN(){
     #while grep -Eowq "$PID" <<< $(ls /proc); do sleep 5; continue; done
 }
 trap sig_abort SIGINT
-DIR=~/.turbodl
+DIR=~/.turbodl; LOCAL="persie"
 case "$1" in
     -A|-a) printf ':: updating all database...'
         (FILE=$DIR/movie_list; URL="https://turbodl.xyz/wp-json/wp/v2/posts?page"; R='turbodl'; RUN $2) &
@@ -46,5 +46,7 @@ case "$1" in
         printf ':: updating series database...'; RUN $2; echo 'done!';;
 esac
 if [ -e $DIR/deleted ]; then
-    echo | mutt -s 'turbodlbot | deleted' -i $DIR/deleted -- persie@turbodl.xyz
+    if [ "$USER" != "$LOCAL" ]; then
+        echo | mutt -s 'turbodlbot | deleted' -i $DIR/deleted -- persie@turbodl.xyz
+    fi
 fi
