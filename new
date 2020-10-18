@@ -1,4 +1,22 @@
 #!/bin/env bash
+set -e
+sig_abort(){
+    if [ $1 ]; then
+        xargs kill <$JUNK/"$OUTPUT.pids" 2> /dev/null
+    else
+        xargs kill <$JUNK/pids 2> /dev/null
+    fi
+    return 1
+}
+FUNC(){
+    BLACKLIST=$(jq '.[0].blacklist' list); WHITELIST=$(jq '.[0].whitelist' list)
+    exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/$OUTPUT.log" 2>&1
+    unset NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME TYPE
+    set -xe; echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
+    if grep -q "$OUTPUT" <<< $BLACKLIST; then echo "$OUTPUT -- blacklisted"; return 1; fi #blaclist if title is in blacklist file
+    curl $ARGS $(grep "$OUTPUT" "$JUNK/main" | grep -o http.*html) > "$JUNK/$OUTPUT.site" || exit #download series page
+    grep -oiE "(<span style=\"font-family.*http|<a.*href=).*(|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" site | sed "s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; /lightdl/d;s/<br \/>//; s/<a.*href/<a href/" > "$JUNK/$OUTPUT.links"
+}
 trap sig_abort SIGINT
 start=`date +%s`
 ARGS='--connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -ks'; LOCAL="persie"
@@ -27,8 +45,8 @@ touch $JUNK/file $JUNK/pid $JUNK/pids
         curl $ARGS "$U" | grep -Eo "http(|s).*html.*</a>" | sed 's:</a>.*::; /Series/d; /Movies/d; /-list/d; /href/d; /covid-19/d; /jpg/d; /Share this/d; /releases/d; /vals-day/d; /Read More/d; /search/d; / [0-9][0-9][0-9][0-9] HD/d; / [0-9][0-9][0-9][0-9]/d' > "$JUNK/main" || exit
     fi
     grep -n . $JUNK/main > $JUNK/mains; mv $JUNK/mains $JUNK/main   #number list of movies in main file
-    if grep -q -- "--list" <<< "$@"; then   #if statement to list movies and end
-        printf %b "             \\r"; cat $JUNK/main | sed 's:http.*>::' && sig_abort
+    if grep -q -- "--list" <<< "$@"; then   #if statement to list movies and exit
+        printf %b "             \\r"; cat $JUNK/main | sed 's:http.*>: :' && sig_abort
     fi
     if [ -e $JUNK/pattern ] && [ $(wc -l<$JUNK/pattern) -gt 0 ]; then
         output=$(grep -w -f $JUNK/pattern $JUNK/main | sed "s:.*>::; s: - SEASON.*::")
