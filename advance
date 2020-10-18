@@ -324,7 +324,7 @@ if [ ! -e stoday.txt ]; then
     exit
 else
     set -xe
-    exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/$OUTPUT.log" 2>&1
+    exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/main.log" 2>&1
     if ! grep -q -- "--test" <<< "$@"; then
         if [ "$USER" == $SERVER ]; then
             if [ -e $JUNK/titles.txt ]; then
