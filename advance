@@ -125,16 +125,16 @@ CROSS_CHECK(){  ###fix
 FUNC(){
     BLACKLIST=$(jq '.[0].blacklist' list); WHITELIST=$(jq '.[0].whitelist' list)
     exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/$OUTPUT.log" 2>&1
-    unset NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME TYPE
+    unset NAME TMDB_API POSTER TMDB_ID TRAILERS KEY IMDB_ID OMDB_API TITLE CAST GENRE RATING PLOT SAME TYPE CHECK
     set -xe; echo -e "\\n${OUTPUT}${TASKS}\\n-----------------------"
     if grep -q "$OUTPUT" <<< $BLACKLIST; then echo "$OUTPUT -- blacklisted"; return 1; fi #blaclist if title is in blacklist file
     curl $ARGS $(grep "$OUTPUT" "$JUNK/main" | grep -o http.*html) > "$JUNK/$OUTPUT.site" || exit #download series page
     grep -oiE "<a href=.*(S[0-9][0-9]E[0-9][0-9]|(E[0-9][0-9]|E[0-9][0-9][0-9])|([0-9][0-9]|[0-9][0-9][0-9])).*(mkv|mp4|avi).*</a>" "$JUNK/$OUTPUT.site" | sed 's:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; /imdb/d; s:<br />:\n:g; s:" .*">::g;' > "$JUNK/$OUTPUT.links"
     sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d; /Load more/d; /blogger.com/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
     grep -q 'http' $JUNK/"$OUTPUT.links" && CHECK=1
-    if grep -qi 'korean' <<< "$OUTPUT"; then
+    if grep -qi 'korean' <<< "$OUTPUT"; then    #check if series is korean
         INSERT=' (Korean) '
-    elif grep -qi 'anime' <<< "$OUTPUT"; then
+    elif grep -qi 'anime' <<< "$OUTPUT"; then   #check if series is anime
         INSERT=' (Anime) '
     else
         INSERT=' '
@@ -146,7 +146,7 @@ FUNC(){
     A=0
     while true; do
         if [ "$(jq -r ".results[$A] | .first_air_date" <<< "$TMDB_API" | sed 's:-::g')" == null ]; then
-            echo "$OUTPUT -- less than 1999" >> stoday.txt; sig_abort 1
+            echo "$OUTPUT -- null" >> stoday.txt; sig_abort 1
         fi
         if [ "$(jq -r ".results[$A] | .first_air_date" <<< "$TMDB_API" | sed 's:-::g')" -lt 19991201 ]; then
             A=$((A+1)); continue
@@ -319,11 +319,10 @@ esac
 done < $JUNK/url; exit) &
 echo "$!" >> $JUNK/pid
 echo $! >> $JUNK/pids
-while grep -owq -f "$JUNK/pid" <<< $(ls /proc); do printf %b ":: working...\\r"; sleep 5; done
+while grep -owq -f "$JUNK/pids" <<< $(ls /proc); do printf %b ":: working...\\r"; sleep 5; done
 if [ ! -e stoday.txt ]; then
     exit
 else
-    set -xe
     exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/main.log" 2>&1
     if ! grep -q -- "--test" <<< "$@"; then
         if [ "$USER" == $SERVER ]; then
