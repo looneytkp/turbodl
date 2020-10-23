@@ -23,7 +23,7 @@ END(){  touch $JUNK/end
             SORTED_POSTS=$(sort -Rr < $JUNK/titles.txt)
                 while IFS= read -r TITLES; do
                     if [ "$USER" != $LOCAL ]; then
-                        echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i series/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a series/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL 2> errors || echo "$(sed "s/ %.*//" <<< "$TITLES") -- could not publish to site" >> results.txt
+                        echo | mutt -s "$(sed "s/ %.*//" <<< "$TITLES")" -i movies/"$(grep -o '%.*' <<< "$TITLES" | sed 's/%//')" -a movies/"$(sed 's/ %.*//' <<< "$TITLES")".jpg -- $MAIL || echo "$(sed "s/ %.*//" <<< "$TITLES") -- could not publish to site" >> results.txt
                     fi
                     if grep -qowF "$(sed "s/ %.*//" <<< "$TITLES")" movie_list; then
                         echo "$(sed "s/ %.*//" <<< "$TITLES") -- updated $STATUS" >> results.txt
@@ -99,6 +99,10 @@ FUNC(){
     grep -oiE "(<span style=\"font-family.*http|<a.*href=).*(|S[0-9][0-9]E[0-9][0-9]).*(mkv|mp4|avi).*</a>" "$JUNK/$OUTPUT.site" | sed "s:(twitchdl.com)::;s:</a>:(turbodl.xyz)</a>:g; s/.*<a/<a/; s/a>.*/a>/; s/CLICK HERE FOR SUBTITLES /Subtitles/; /Load more/d; /img/d; /lightdl/d;s/<br \/>//; s/<a.*href/<a href/" > "$JUNK/$OUTPUT.links"   #grab links and strip off junk
     sed -i '/subtitle/d; s:<.*span.*span>::g; /^<span/d; /Load more/d; /blogger.com/d' "$JUNK/$OUTPUT.links" #get links and remove junk from links & add 'turbodl.xyz' to the end of links without it
     grep -q 'http' $JUNK/"$OUTPUT.links" && LINKS_AVAILABLE=YES #check for links in file and tag it
+    ###properly fix year variable
+    YEAR=$(grep -woE '([0-9][0-9][0-9][0-9]$|[0-9][0-9][0-9][0-9])' <<< "$OUTPUT" || sed '0,/class=.*post-body/d; /CLICK ON.* LINK.* BELOW TO DOWNLOAD/,$d' site | grep -oE '(Release.*[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]<br />)' | grep -o '[0-9][0-9][0-9][0-9]' | head -1)
+    if [ "$YEAR" == "Collection" ]; then echo "$OUTPUT -- collection" >> results.txt; sig_abort 1; fi
+    ###end
     NAME=$(sed -e 's/  $//; s/ $//; s/\./ /g; s/_/ /g; s/[ -.][0-9][0-9][0-9][0-9].*//; s/ ([0-9][0-9][0-9][0-9]).*//; s/ - Collection//; s/ Collection//; s/ (Tv-Series)//; s/ (Anime)//' <<< "$OUTPUT")   #get title of movie from page
     grep -q "$OUTPUT=" <<< $WHITELIST && NAME=$(sed "/$OUTPUT/!d; s/.*$OUTPUT=//; s/\".*//")    #replace title of movie if title is a misnomer
     TMDB_API=$(curl $ARGS -H "Accept: application/json" -H "Content-Type: application/json" "https://api.themoviedb.org/3/search/movie?api_key=0dec8436bb1b7de2bbcb1920ac31111f&query=$(sed "s/ /%20/g" <<< "$NAME")&page=1&" || exit)   #themoviedb AP
@@ -111,9 +115,11 @@ FUNC(){
         if [ "$(jq -r ".results[$A] | .release_date" <<< "$TMDB_API" | sed 's:-::g')" -lt 19991201 ]; then
             A=$((A+1)); continue    #discard movie if year is less than 1999
         else
-            if [ $(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API") != 'null' ]; then
+            if ! grep -q "$YEAR" <<< "$(jq -r ".results[$A] | .release_date" <<< "$TMDB_API")"; then
+                A=$((A+1)); continue    #discard if movie year does not match themoviedb API results
+            elif [ $(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API") != 'null' ]; then
                 TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")     #movie ID
-                POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"  #get movie poster
+                POSTER="https://image.tmdb.org/t/p/w500$(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API")"  #get movie poster url
                 break
             else
                 echo "$OUTPUT -- no poster" >> results.txt && return 1  #discard post if no poster is found
@@ -142,7 +148,7 @@ FUNC(){
     set -xe
     IMDB_ID=$(curl $ARGS --header "Content-Type: application/json" --header "trakt-api-version: 2" --header "trakt-api-key: 64ba02e985f18ec3a00186209b3605cfbbeedf9890898e3a06b8e020111e8194" "https://api.trakt.tv/search/tmdb/$TMDB_ID?type=movie" | jq -r ".[0].movie.ids.imdb")     #traktAPI
     ! grep -q 'tt' <<< "$IMDB_ID" && echo "$OUTPUT -- false trakt API response" >> results.txt && sig_abort 1
-    #background code to get magnets
+    ##background code to get magnets
     (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/${OUTPUT}_yts.log" 2>&1
     declare -a PID; I=1; J=100; A=0; touch $JUNK/"$OUTPUT.mg"
     while true; do
@@ -174,7 +180,7 @@ FUNC(){
     done
     mv $JUNK/"$OUTPUT.mg" $JUNK/"$OUTPUT.magnets"
     sed -i "1s:^:\n<h3>Magnets\:</h3>\n:" $JUNK/"$OUTPUT.magnets"; rm $JUNK/"$OUTPUT.site"; exit) &
-    #end
+    ###end
     set +x; echo $! | tee -a $JUNK/pids $JUNK/"$OUTPUT.pids"; set -x
     OMDB_API=$(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -s -H "Accept: application/json" -H "Content-Type: application/json" "http://www.omdbapi.com/?i=$IMDB_ID&plot=short&apikey=7759dbc7" || exit)
     grep "Error getting data" <<< "$OMDB_API" && echo "$OUTPUT -- false OMDB API response" >> results.txt && sig_abort 1
