@@ -2,7 +2,7 @@
 set -e
 sig_abort(){
     if [ "$1" == 1 ]; then
-        xargs kill <$JUNK/"$OUTPUT.pids" 2> /dev/null
+        if [ -e $JUNK/"$OUTPUT.pids" ]; then xargs kill <$JUNK/"$OUTPUT.pids" 2> /dev/null; fi
     else
         xargs kill <$JUNK/pids 2> /dev/null
     fi
@@ -115,7 +115,7 @@ FUNC(){
         if [ "$(jq -r ".results[$A] | .release_date" <<< "$TMDB_API" | sed 's:-::g')" -lt 19991201 ]; then
             A=$((A+1)); continue    #discard movie if year is less than 1999
         else
-            if ! grep -q "$YEAR" <<< "$(jq -r ".results[$A] | .release_date" <<< "$TMDB_API")"; then
+            if ! grep -qE "($YEAR|$(($YEAR-1))|$(($YEAR+1)))" <<< "$(jq -r ".results[$A] | .release_date" <<< "$TMDB_API")"; then
                 A=$((A+1)); continue    #discard if movie year does not match themoviedb API results
             elif [ $(jq -r ".results[$A] | .poster_path" <<< "$TMDB_API") != 'null' ]; then
                 TMDB_ID=$(jq -r ".results[$A] | .id" <<< ""$TMDB_API"")     #movie ID
