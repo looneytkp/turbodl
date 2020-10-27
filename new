@@ -15,7 +15,7 @@ FINALIZE(){
         echo -e "<p style=\"text-align: center;\">\\n$PLOT</p>\\n\\n<p style=\"text-align: center;\">IMDB Rating: $RATING\\nCast: $CAST\\nGenre: $GENRE</p>\\n\\n<div style=\"text-align: center;\"><h3>Download Links:</h3>\\n$(cat $JUNK/"$OUTPUT.links")\\n</div><div style=\"text-align: center;\">\\n\\n\\nLinks not downloading?\\nSome N/A links don't work, don't be surprised. Also some servers do not permit simultaneous downloads above 2 or 3, finish the current download and try again.\\nOr better yet, take a look at our <a href=\"https://turbodl.xyz/tutorials/\" target=\"_blank\" rel=\"nofollow\">Tutorials</a> on how to download effectively.\\nPlease leave a us reply below or contact us via <a href=\"https://chat.whatsapp.com/DjmtHlPvrFUFgbMCseVm3Y\" target=\"_blank\" rel=\"nofollow\">Whatsapp</a> or <a href=\"https://t.me/turbodl\" target=\"_blank\" rel=\"nofollow\">Telegram</a> if links are not working or if you have an issue or suggestion.\\n\\n<h3>Thank you for using TurboDL</h3></div>\\n\\nTags: $GENRE, $YEAR" > movies/"$OUTPUT".txt
     fi
 }
-END(){  touch $JUNK/end
+END(){  (touch $JUNK/end
     exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/main.log" 2>&1
     if ! grep -q -- "--test" <<< "$@"; then
         if [ -e $JUNK/titles.txt ]; then
@@ -38,7 +38,7 @@ END(){  touch $JUNK/end
         fi
     fi
     ! grep -q "^Movies" results.txt && sed -i "1s/^/\\nMovies\\n------\\n/" results.txt
-    rm $JUNK/end
+    rm $JUNK/end) &
 }
 PARSE(){
     (exec 3>&1 4>&2; trap 'exec 2>&4 1>&3' 0 1 2 3; exec 1>"logs/${OUTPUT}_parse.log" 2>&1
@@ -269,7 +269,7 @@ touch $JUNK/pids #$JUNK/skip_duplicates.file
 done < $JUNK/url; exit) &
 echo $! >> $JUNK/pids
 while grep -owq -f "$JUNK/pids" <<< $(ls /proc); do printf %b ":: working...\\r"; sleep 5; done
-(END) &
+END
 while [ -e $JUNK/end ]; do sleep 5; continue; done
 echo -e ":: working...done!"
 end=`date +%s`
