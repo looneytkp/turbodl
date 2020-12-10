@@ -1,5 +1,5 @@
 #!/bin/env bash
-set -e
+set -ex
 DIR=~/.turbodl
 if [ -d "$DIR" ]; then cd "$DIR"; fi
 zip -rq turbo.zip * -x md5 -x *list -x junk/pid*
